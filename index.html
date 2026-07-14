@@ -147,7 +147,7 @@
   <div id="entry">
     <div class="eyebrow">SYSTEM // DORMANT</div>
     <button id="enterBtn"><span>ENTER THE DRIVE</span></button>
-    <div class="sub">NEON DRIVE — CONCEPT ARC-9 · IGNITION SEQUENCE</div>
+    <div class="sub">AWAITING PILOT MONIKA · ARC-9 IGNITION SEQUENCE</div>
   </div>
 
   <div id="boot">
@@ -156,13 +156,14 @@
     <div class="line" id="l3">&gt; PHOTON EMITTERS ........... <span class="ok">ARMED</span></div>
     <div class="line" id="l4">&gt; CHASSIS ARC-9 ............. <span class="ok">SYNCED</span></div>
     <div class="line" id="l5">&gt; ROUTE ..................... <span class="ok">UNKNOWN — GENERATING</span></div>
+    <div class="line" id="l5b">&gt; PILOT ID ................... <span class="ok">MONIKA — VERIFIED</span></div>
     <div class="line" id="l6">&gt; INITIATING DRIVE<span class="cursor"></span></div>
   </div>
   <div id="bootFlash"></div>
 
   <div id="hud">
     <div class="corner tl"><b>NEON DRIVE</b><span class="dim">ARC-9 / AUTONOMOUS SHOWCASE</span></div>
-    <div class="corner tr">SECTOR 07 — NULL DISTRICT<br><span class="dim">FOG DENSITY NOMINAL</span></div>
+    <div class="corner tr">PILOT — MONIKA<br><span class="dim">CALLSIGN ARC-9 · SECTOR 07</span></div>
     <div class="corner bl">
       <div class="speedval" id="speedNum">000</div>
       <div class="dim">KM/H · SYNTH DRIVE</div>
@@ -220,7 +221,7 @@ enterBtn.addEventListener("click", () => {
    ============================================================ */
 const boot = document.getElementById("boot");
 const bootFlash = document.getElementById("bootFlash");
-const lines = ["l1","l2","l3","l4","l5","l6"].map(id => document.getElementById(id));
+const lines = ["l1","l2","l3","l4","l5","l5b","l6"].map(id => document.getElementById(id));
 
 function runBootSequence(){
   boot.classList.add("active");
@@ -549,6 +550,86 @@ trailGeo.setFromPoints(trailPts);
 const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color:0x00f7ff, transparent:true, opacity:0.28 }));
 scene.add(trail);
 
+/* ---- Pilot emblem: a canvas-drawn "M" glowing on the car's flank ---- */
+function makeEmblemTexture(){
+  const size = 256;
+  const cnv = document.createElement("canvas");
+  cnv.width = cnv.height = size;
+  const ctx = cnv.getContext("2d");
+  ctx.clearRect(0,0,size,size);
+  ctx.strokeStyle = "rgba(0,240,255,0.9)";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size*0.42, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.font = "700 128px Orbitron, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(0,240,255,1)";
+  ctx.shadowBlur = 28;
+  ctx.fillStyle = "#eafeff";
+  ctx.fillText("M", size/2, size/2 + 8);
+  ctx.shadowBlur = 0;
+  return new THREE.CanvasTexture(cnv);
+}
+const emblemTex = makeEmblemTexture();
+const emblemMat = new THREE.MeshBasicMaterial({
+  map:emblemTex, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+});
+[0.76, -0.76].forEach(z => {
+  const emblem = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), emblemMat);
+  emblem.position.set(0.15, 1.05, z);
+  emblem.rotation.y = z > 0 ? Math.PI/2 : -Math.PI/2;
+  car.add(emblem);
+});
+// same mark, small, glowing on the spoiler
+const spoilerEmblem = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.28), emblemMat);
+spoilerEmblem.position.set(-1.65, 1.6, 0);
+spoilerEmblem.rotation.x = -Math.PI/2;
+car.add(spoilerEmblem);
+
+/* ---- Holographic pilot silhouette, seated in the cockpit ---- */
+const holoMat = new THREE.MeshBasicMaterial({
+  color:0x00f0ff, transparent:true, opacity:0.55,
+  blending:THREE.AdditiveBlending, depthWrite:false, wireframe:false
+});
+const holoWireMat = new THREE.MeshBasicMaterial({
+  color:0x9df8ff, transparent:true, opacity:0.9,
+  blending:THREE.AdditiveBlending, wireframe:true
+});
+const pilot = new THREE.Group();
+const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.28, 4, 8), holoMat);
+torso.position.set(0, 1.62, 0);
+pilot.add(torso);
+const torsoWire = new THREE.Mesh(new THREE.CapsuleGeometry(0.145, 0.28, 4, 8), holoWireMat);
+torsoWire.position.copy(torso.position);
+pilot.add(torsoWire);
+
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 12), holoMat);
+head.position.set(0, 1.92, 0);
+pilot.add(head);
+const headWire = new THREE.Mesh(new THREE.SphereGeometry(0.113, 10, 10), holoWireMat);
+headWire.position.copy(head.position);
+pilot.add(headWire);
+
+// arms resting toward the wheel
+[0.16, -0.16].forEach(z => {
+  const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.24, 3, 6), holoMat);
+  arm.position.set(0.16, 1.55, z);
+  arm.rotation.z = -0.9;
+  arm.rotation.y = z > 0 ? -0.3 : 0.3;
+  pilot.add(arm);
+});
+
+// small holographic "steering" ring pulse
+const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.012, 8, 20), holoMat);
+wheelRing.position.set(0.32, 1.42, 0);
+wheelRing.rotation.x = Math.PI/2.3;
+pilot.add(wheelRing);
+
+pilot.position.set(-0.1, 0, 0);
+car.add(pilot);
+
 /* ============================================================
    6. CINEMATIC CAMERA DIRECTOR
    ============================================================ */
@@ -661,6 +742,12 @@ function animate(){
   });
 
   buildingMat.emissiveIntensity = 0.3 + Math.sin(driveT * 2) * 0.08;
+
+  // holographic pilot flicker + gentle idle sway
+  const flicker = 0.5 + Math.sin(driveT * 9) * 0.08 + (Math.random() < 0.02 ? -0.3 : 0);
+  holoMat.opacity = THREE.MathUtils.clamp(flicker, 0.15, 0.7);
+  pilot.rotation.y = Math.sin(driveT * 0.5) * 0.05;
+  wheelRing.rotation.z += dt * 1.4;
 
   cyanPulse.position.set(6 + Math.sin(driveT)*3, 6 + Math.cos(driveT*0.7)*2, car.position.z + 6);
   magentaPulse.position.set(-6 + Math.cos(driveT*0.8)*3, 4 + Math.sin(driveT*1.1)*2, car.position.z + 4);
