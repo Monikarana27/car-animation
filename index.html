@@ -437,15 +437,34 @@ const glassMat = new THREE.MeshStandardMaterial({
   metalness:0.9, roughness:0.05, transparent:true, opacity:0.85
 });
 
+// extra body-detail materials (non-emissive — this is where the "more detail, less light" ask lives)
+const brushedSilver = new THREE.MeshStandardMaterial({ color:0xb9c2c8, metalness:1.0, roughness:0.28 });
+const carbonMat = new THREE.MeshStandardMaterial({ color:0x0d0d10, metalness:0.4, roughness:0.75 });
+
 // body shell (lower + cabin wedge for hypercar silhouette)
 const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.5, 1.5), paintMat);
 lowerBody.position.y = 0.95;
 car.add(lowerBody);
 
+// door seam grooves (thin recessed lines to read as panel gaps, not just a flat box)
+[0.62, -0.62].forEach(z => {
+  const seam = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.015, 0.015), carbonMat);
+  seam.position.set(-0.15, 1.06, z * 1.001);
+  car.add(seam);
+  const seamV = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.42, 0.015), carbonMat);
+  seamV.position.set(0.52, 0.98, z * 1.001);
+  car.add(seamV);
+});
+
 const cabinShape = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.2), paintMat);
 cabinShape.position.set(-0.1, 1.42, 0);
 cabinShape.rotation.z = -0.03;
 car.add(cabinShape);
+
+// roof spine (raised ridge running down the cabin, a hallmark hypercar detail line)
+const roofSpine = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.05, 0.14), carbonMat);
+roofSpine.position.set(-0.1, 1.685, 0);
+car.add(roofSpine);
 
 const nose = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.3, 4), paintMat);
 nose.rotation.z = -Math.PI/2;
@@ -454,21 +473,71 @@ nose.scale.set(1, 1, 0.62);
 nose.position.set(1.95, 0.95, 0);
 car.add(nose);
 
+// hood vents (raised slats ahead of the windshield)
+[0.28, -0.28].forEach(z => {
+  const vent = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.05, 0.12), carbonMat);
+  vent.position.set(1.15, 1.24, z);
+  vent.rotation.y = 0.05;
+  car.add(vent);
+});
+
+// front splitter + canards (aero detail under and beside the nose)
+const splitter = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 1.55), carbonMat);
+splitter.position.set(2.25, 0.68, 0);
+car.add(splitter);
+[0.62, -0.62].forEach(z => {
+  const canard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.18), carbonMat);
+  canard.position.set(2.05, 0.82, z);
+  canard.rotation.z = 0.15;
+  canard.rotation.y = z > 0 ? 0.3 : -0.3;
+  car.add(canard);
+});
+
+// side skirts running the length of the car
+[0.78, -0.78].forEach(z => {
+  const skirt = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.09, 0.06), carbonMat);
+  skirt.position.set(-0.1, 0.72, z);
+  car.add(skirt);
+});
+
+// side intake scoops ahead of the rear wheels (functional-looking, non-glowing)
+[0.76, -0.76].forEach(z => {
+  const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.22, 0.05), darkTrim);
+  scoop.position.set(-0.55, 0.95, z);
+  car.add(scoop);
+  const scoopLip = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.03, 0.07), brushedSilver);
+  scoopLip.position.set(-0.32, 1.04, z);
+  car.add(scoopLip);
+});
+
 const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.4, 1.1), glassMat);
 windshield.position.set(-0.1, 1.55, 0);
 car.add(windshield);
 
-// mirrors
+// mirrors — stalk + housing + lens, instead of a single flat box
 [1, -1].forEach(side => {
-  const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.1), darkTrim);
-  mirror.position.set(0.55, 1.35, side * 0.85);
-  car.add(mirror);
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8), darkTrim);
+  stalk.rotation.z = Math.PI/2.4;
+  stalk.position.set(0.42, 1.32, side * 0.68);
+  car.add(stalk);
+
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.13, 0.11), paintMat);
+  housing.position.set(0.55, 1.38, side * 0.86);
+  car.add(housing);
+
+  const lens = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.1), brushedSilver);
+  lens.position.set(0.55, 1.38, side * 0.815);
+  lens.rotation.y = Math.PI/2;
+  car.add(lens);
 });
 
 // spoiler + struts
 const spoiler = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.07, 1.35), glowMagenta);
 spoiler.position.set(-1.65, 1.55, 0);
 car.add(spoiler);
+const spoilerLip = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.02, 1.37), brushedSilver);
+spoilerLip.position.set(-1.65, 1.585, 0);
+car.add(spoilerLip);
 [0.55, -0.55].forEach(z => {
   const strut = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), darkTrim);
   strut.position.set(-1.65, 1.28, z);
@@ -478,49 +547,100 @@ car.add(spoiler);
 // headlights & taillights
 const headLightGeo = new THREE.BoxGeometry(0.1, 0.12, 0.35);
 [0.42, -0.42].forEach(z => {
+  const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.4), brushedSilver);
+  bezel.position.set(2.53, 0.95, z);
+  car.add(bezel);
   const hl = new THREE.Mesh(headLightGeo, glowCyan);
-  hl.position.set(2.55, 0.95, z);
+  hl.position.set(2.58, 0.95, z);
   car.add(hl);
 });
+// segmented taillight bar (3 blocks per side instead of one solid slab)
 [0.5, -0.5].forEach(z => {
-  const tl = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.3), glowMagenta);
-  tl.position.set(-1.72, 0.95, z);
-  car.add(tl);
+  for (let seg = -1; seg <= 1; seg++){
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.14, 0.08), glowMagenta);
+    tl.position.set(-1.72, 0.95, z + seg * 0.1);
+    car.add(tl);
+  }
+  const tailBezel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.19, 0.34), brushedSilver);
+  tailBezel.position.set(-1.75, 0.95, z);
+  car.add(tailBezel);
 });
 
-// exhaust glow
-const exhaustGlow = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.2, 12), glowAmber);
-exhaustGlow.rotation.z = Math.PI/2;
-exhaustGlow.position.set(-1.78, 0.75, 0);
-car.add(exhaustGlow);
+// exhaust glow + physical tips
+[0.18, -0.18].forEach(z => {
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.12, 14), brushedSilver);
+  tip.rotation.z = Math.PI/2;
+  tip.position.set(-1.85, 0.72, z);
+  car.add(tip);
+  const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 12), glowAmber);
+  glow.rotation.z = Math.PI/2;
+  glow.position.set(-1.9, 0.72, z);
+  car.add(glow);
+});
 
-// wheels: tyre + glowing rim + brake disc
+// rear diffuser fins
+for (let i=-2; i<=2; i++){
+  const fin = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.04), brushedSilver);
+  fin.position.set(-1.55, 0.62, i * 0.22);
+  fin.rotation.y = 0.5;
+  car.add(fin);
+}
+
+// wheels: tyre + multi-spoke rim + brake disc + caliper + arch flare
 const wheelPositions = [
   [-1.05, 0.6, 0.82], [1.05, 0.6, 0.82],
   [-1.05, 0.6, -0.82], [1.05, 0.6, -0.82]
 ];
 const tyreGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.26, 24);
-const rimGeo = new THREE.TorusGeometry(0.2, 0.045, 10, 20);
+const rimRingGeo = new THREE.TorusGeometry(0.2, 0.035, 10, 20);
+const spokeGeo = new THREE.BoxGeometry(0.34, 0.045, 0.02);
+const hubGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.28, 12);
 const discGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.04, 20);
 const discMat = new THREE.MeshStandardMaterial({ color:0x999999, metalness:0.9, roughness:0.3 });
+const caliperMat = new THREE.MeshStandardMaterial({ color:0x00b8c8, metalness:0.6, roughness:0.35, emissive:0x004450, emissiveIntensity:0.4 });
 const wheels = [];
 wheelPositions.forEach(([x,y,z]) => {
+  const wheelGroup = new THREE.Group();
+  const spinGroup = new THREE.Group(); // parts that actually rotate as the wheel rolls
+
   const tyre = new THREE.Mesh(tyreGeo, darkTrim);
   tyre.rotation.z = Math.PI/2;
-  tyre.position.set(x,y,z);
-  car.add(tyre);
+  spinGroup.add(tyre);
 
   const disc = new THREE.Mesh(discGeo, discMat);
   disc.rotation.z = Math.PI/2;
-  disc.position.set(x,y,z);
-  car.add(disc);
+  spinGroup.add(disc);
 
-  const rim = new THREE.Mesh(rimGeo, glowCyan.clone());
-  rim.rotation.y = Math.PI/2;
-  rim.position.set(x,y,z);
-  car.add(rim);
+  const hub = new THREE.Mesh(hubGeo, brushedSilver);
+  hub.rotation.z = Math.PI/2;
+  spinGroup.add(hub);
 
-  wheels.push({ tyre, rim });
+  // five-spoke rim instead of a plain ring
+  for (let s=0; s<5; s++){
+    const spoke = new THREE.Mesh(spokeGeo, brushedSilver);
+    spoke.rotation.x = (s / 5) * Math.PI * 2;
+    spinGroup.add(spoke);
+  }
+  const rimRing = new THREE.Mesh(rimRingGeo, glowCyan.clone());
+  rimRing.rotation.y = Math.PI/2;
+  spinGroup.add(rimRing);
+
+  wheelGroup.add(spinGroup);
+
+  // fixed suspension parts — do not rotate with the wheel
+  const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.16), caliperMat);
+  caliper.position.set(0.14 * Math.sign(x || 1), 0.1, 0);
+  wheelGroup.add(caliper);
+
+  const flare = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.05, 8, 16, Math.PI * 1.15), carbonMat);
+  flare.rotation.y = Math.PI/2;
+  flare.rotation.z = Math.PI * 0.18;
+  wheelGroup.add(flare);
+
+  wheelGroup.position.set(x, y, z);
+  car.add(wheelGroup);
+
+  wheels.push({ spinGroup });
 });
 
 // underglow
@@ -722,7 +842,7 @@ function animate(){
   car.position.z = 0;
   car.position.y = 0.05 + Math.sin(driveT * 2.4) * 0.025;
   car.rotation.y = -Math.sin(driveT * 0.6) * 0.22;
-  wheels.forEach(w => { w.tyre.rotation.x -= 0.3; w.rim.rotation.x -= 0.3; });
+  wheels.forEach(w => { w.spinGroup.rotation.x -= 0.3; });
 
   // environment motion
   gridMat.uniforms.time.value = driveT;
