@@ -9,77 +9,251 @@
      BASE PAGE / HUD STYLING
      ============================================================ */
   html, body {
-    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     background: #000;
     font-family: 'Courier New', monospace;
   }
+
   canvas { display: block; }
 
+  /* ---------- HUD (top-left system label, top-right score) ---------- */
   #hud {
-    position: fixed; inset: 0; pointer-events: none;
-    color: #00f7ff;
-    text-shadow: 0 0 6px rgba(0,247,255,0.8);
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
   }
+
   #hud .topLeft {
-    position: absolute; top: 18px; left: 20px;
-    font-size: 13px; letter-spacing: 2px;
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    color: #00f7ff;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px rgba(0, 247, 255, 0.8);
   }
+
+  #hud .topLeft .subLine {
+    display: block;
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(157, 248, 255, 0.55);
+    text-shadow: none;
+  }
+
   #hud .topRight {
-    position: absolute; top: 18px; right: 20px;
-    font-size: 18px; letter-spacing: 2px;
+    position: absolute;
+    top: 18px;
+    right: 20px;
     text-align: right;
+    color: #00f7ff;
+    text-shadow: 0 0 6px rgba(0, 247, 255, 0.8);
   }
+
+  #hud .topRight .scoreValue {
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+
+  #hud .topRight .bestValue {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(255, 176, 0, 0.75);
+    text-shadow: 0 0 6px rgba(255, 176, 0, 0.5);
+  }
+
+  #hud .speedBarWrap {
+    position: absolute;
+    bottom: 46px;
+    left: 20px;
+    width: 140px;
+  }
+
+  #hud .speedBarLabel {
+    color: rgba(0, 247, 255, 0.6);
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  #hud .speedBarTrack {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 247, 255, 0.12);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #hud .speedBarFill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background: #00f7ff;
+    box-shadow: 0 0 8px #00f7ff;
+    transition: width 0.15s linear;
+  }
+
   #hud .hint {
-    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-    font-size: 11px; letter-spacing: 2px; opacity: 0.6;
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #00f7ff;
+    opacity: 0.55;
   }
 
   /* ---------- GAME OVER OVERLAY ---------- */
-  #gameOver {
-    position: fixed; inset: 0;
+  #gameOverOverlay {
+    position: fixed;
+    inset: 0;
     display: none; /* toggled to flex on collision */
-    align-items: center; justify-content: center; flex-direction: column;
-    background: rgba(0, 0, 0, 0.82);
-    color: #ff2b6f;
-    text-shadow: 0 0 10px rgba(255, 43, 111, 0.8);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.84);
     font-family: 'Courier New', monospace;
     text-align: center;
   }
-  #gameOver h1 {
-    font-size: 32px; letter-spacing: 6px; margin: 0 0 10px;
+
+  #gameOverOverlay h1 {
+    margin: 0 0 10px;
+    font-size: 32px;
+    letter-spacing: 6px;
+    color: #ff2b6f;
+    text-shadow: 0 0 10px rgba(255, 43, 111, 0.8);
   }
-  #gameOver p {
-    color: #9df8ff; font-size: 14px; letter-spacing: 2px; margin: 4px 0 22px;
-    text-shadow: 0 0 6px rgba(0,247,255,0.6);
+
+  #gameOverOverlay .scoreLine {
+    margin: 4px 0;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #9df8ff;
+    text-shadow: 0 0 6px rgba(0, 247, 255, 0.6);
   }
-  #restartBtn {
+
+  #gameOverOverlay .bestLine {
+    margin: 0 0 24px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255, 176, 0, 0.85);
+  }
+
+  #restartButton {
     font-family: 'Courier New', monospace;
-    font-size: 14px; letter-spacing: 3px;
+    font-size: 14px;
+    letter-spacing: 3px;
     color: #00f7ff;
     background: transparent;
     border: 1px solid #00f7ff;
-    padding: 12px 28px;
+    padding: 12px 30px;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  #restartBtn:hover {
+
+  #restartButton:hover {
     background: #00f7ff;
+    color: #000;
+  }
+
+  /* ---------- START OVERLAY (shown before the first run) ---------- */
+  #startOverlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.75);
+    font-family: 'Courier New', monospace;
+    text-align: center;
+  }
+
+  #startOverlay h1 {
+    margin: 0 0 14px;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: #00f7ff;
+    text-shadow: 0 0 10px rgba(0, 247, 255, 0.8);
+  }
+
+  #startOverlay p {
+    margin: 0 0 26px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(157, 248, 255, 0.7);
+  }
+
+  #startButton {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    color: #ffb000;
+    background: transparent;
+    border: 1px solid #ffb000;
+    padding: 12px 30px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  #startButton:hover {
+    background: #ffb000;
     color: #000;
   }
 </style>
 </head>
 <body>
 
+  <!-- ============================================================
+       HUD MARKUP
+       ============================================================ -->
   <div id="hud">
-    <div class="topLeft">NEON RUNNER // SYSTEM ACTIVE</div>
-    <div class="topRight" id="scoreText">SCORE: 0</div>
-    <div class="hint">◀ / A &nbsp; &nbsp; D / ▶ &nbsp;— SWITCH LANES</div>
+    <div class="topLeft">
+      NEON RUNNER // SYSTEM ACTIVE
+      <span class="subLine" id="statusLine">LANE 2 / 3 — HOLD THE LINE</span>
+    </div>
+
+    <div class="topRight">
+      <span class="scoreValue" id="scoreText">SCORE: 0</span>
+      <span class="bestValue" id="bestText">BEST: 0</span>
+    </div>
+
+    <div class="speedBarWrap">
+      <div class="speedBarLabel">VELOCITY</div>
+      <div class="speedBarTrack">
+        <div class="speedBarFill" id="speedBarFill"></div>
+      </div>
+    </div>
+
+    <div class="hint">◀ / A &nbsp;&nbsp; D / ▶ — SWITCH LANES</div>
   </div>
 
-  <div id="gameOver">
+  <!-- ============================================================
+       START OVERLAY
+       ============================================================ -->
+  <div id="startOverlay">
+    <h1>NEON RUNNER</h1>
+    <p>ARROW KEYS OR A / D TO CHANGE LANES · SURVIVE THE GRID</p>
+    <button id="startButton">START ENGINE</button>
+  </div>
+
+  <!-- ============================================================
+       GAME OVER OVERLAY
+       ============================================================ -->
+  <div id="gameOverOverlay">
     <h1>SYSTEM FAILURE</h1>
-    <p id="finalScoreText">FINAL SCORE: 0</p>
-    <button id="restartBtn">RESTART</button>
+    <p class="scoreLine" id="finalScoreText">FINAL SCORE: 0</p>
+    <p class="bestLine" id="finalBestText">BEST: 0</p>
+    <button id="restartButton">RESTART</button>
   </div>
 
 <script type="importmap">
@@ -89,375 +263,717 @@
   }
 }
 </script>
+
 <script type="module">
 import * as THREE from "three";
 
-/* ============================================================
-   CONFIG — tweak these to change the feel of the game
-   ============================================================ */
+/* ================================================================================
+   SECTION 1 — CONFIG
+   Every tunable number for the game lives here. Change these to reshape the
+   feel of the run without touching logic anywhere else in the file.
+   ================================================================================ */
 const CONFIG = {
-  laneCount: 3,          // how many lanes
-  laneWidth: 2.6,        // distance between lane centers
-  laneSwitchSpeed: 12,   // how snappy lane changes feel (higher = snappier)
 
-  baseSpeed: 16,         // starting obstacle speed (units/sec)
-  speedRamp: 0.12,       // speed gained per second survived
-  maxSpeed: 46,          // speed cap
+  // --- lanes ---
+  laneCount: 3,             // left / center / right
+  laneWidth: 2.6,           // distance between lane centers, in world units
+  laneSwitchSharpness: 10,  // higher = snappier lane changes (exponential damping rate)
 
-  spawnIntervalStart: 0.95, // seconds between obstacle spawns at game start
-  spawnIntervalMin: 0.45,   // fastest spawn rate as difficulty rises
+  // --- difficulty & pacing (both keyed off score, not just elapsed time) ---
+  baseSpeed: 15,            // obstacle speed at score 0 (units/sec)
+  maxSpeed: 46,             // hard cap on obstacle speed
+  speedGainPerPoint: 0.06,  // how much speed is added per score point earned
 
-  spawnDistance: -70,    // world Z where obstacles are born (far away)
-  despawnDistance: 8,    // world Z where obstacles are cleaned up (behind camera)
-  carZ: 0,               // the car's fixed Z position
-  collisionZTolerance: 1.1, // how close (in Z) an obstacle must be to the car to count as a hit
-  collisionLaneTolerance: 0.9, // fraction of a lane width still considered "same lane"
+  spawnIntervalStart: 1.05, // seconds between spawns at score 0
+  spawnIntervalMin: 0.42,   // fastest the spawner is allowed to fire
+  spawnIntervalDecayPerPoint: 0.01, // how much faster spawning gets per point
 
+  pointsPerObstaclePassed: 10, // score awarded each time an obstacle is safely passed
+
+  // --- world geometry ---
+  spawnZ: -75,              // where obstacles are born, far down the road
+  despawnZ: 9,              // where passed obstacles are cleaned up (behind the camera)
+  carZ: 0,                  // the car's fixed Z position (world scrolls past it)
+  collisionZWindow: 1.15,   // how close (in Z) an obstacle must get to the car to be a hit
+  collisionLaneFraction: 0.85, // how much lane-overlap counts as "same lane" for a hit
+
+  // --- car motion / life ---
+  idleBobAmplitude: 0.012,     // subtle vertical vibration amplitude at speed
+  idleBobFrequencyBase: 10,    // vibration frequency floor
+  idleBobFrequencyPerSpeed: 0.35,
+  bodyLeanAmount: 0.22,        // how far the car visually leans into a lane change
+  wheelSpinPerSpeed: 0.42,     // wheel rotation speed scaled by obstacle speed
+
+  // --- palette (kept centralized so the whole scene reads as one neon system) ---
   colors: {
     cyan: 0x00f7ff,
     magenta: 0xff2bd6,
     amber: 0xffb000,
-    danger: 0xff2b4d
+    danger: 0xff2b4d,
+    deepCyan: 0x001217,
+    deepRed: 0x170003
   }
 };
 
-/* ============================================================
-   RENDERER / SCENE / CAMERA
-   — deliberately NO post-processing / bloom, so colors stay
-     crisp and never bleed onto neighboring geometry.
-   ============================================================ */
+/* ================================================================================
+   SECTION 2 — SCENE / CAMERA / RENDERER SETUP
+   Deliberately no post-processing (no bloom composer). Colors stay flat and
+   crisp — emissive materials read as "neon" without any pass spreading light
+   across neighboring geometry.
+   ================================================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
-scene.fog = new THREE.Fog(0x000000, 20, 75);
+scene.fog = new THREE.Fog(0x000000, 22, 78);
 
-const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 3.4, 7.5);
-camera.lookAt(0, 1, -10);
+const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 3.5, 7.6);
+camera.lookAt(0, 1, -12);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.toneMapping = THREE.NoToneMapping;   // keeps neon colors flat and crisp, no wash/bleed
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.NoToneMapping;       // keeps colors flat, no ACES glow-wash
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
-/* ============================================================
-   LIGHTING — just enough to read shape, no glow/bloom passes
-   ============================================================ */
-scene.add(new THREE.AmbientLight(0x223344, 0.6));
-const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
-keyLight.position.set(3, 8, 5);
-scene.add(keyLight);
-const rimCyan = new THREE.PointLight(0x00f7ff, 4, 12);
-rimCyan.position.set(-2, 2, 2);
-scene.add(rimCyan);
-const rimMagenta = new THREE.PointLight(0xff2bd6, 3, 12);
-rimMagenta.position.set(2, 2, -2);
-scene.add(rimMagenta);
+/* ================================================================================
+   SECTION 3 — LIGHTING
+   Just enough light to read the car's shape. No point lights are strong
+   enough to overexpose or "bleed" into neighboring surfaces.
+   ================================================================================ */
+function setupLighting(){
+  scene.add(new THREE.AmbientLight(0x223344, 0.65));
 
-/* ============================================================
-   HELPER — crisp black edge outline for any mesh
-   (reads as a "hacker HUD" line-art look, keeps silhouettes sharp)
-   ============================================================ */
-const outlineMat = new THREE.LineBasicMaterial({ color: 0x000000 });
-function addEdges(mesh){
-  const edges = new THREE.EdgesGeometry(mesh.geometry, 20);
-  const line = new THREE.LineSegments(edges, outlineMat);
-  mesh.add(line);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  keyLight.position.set(3, 8, 5);
+  scene.add(keyLight);
+
+  const rimCyan = new THREE.PointLight(CONFIG.colors.cyan, 3.5, 12);
+  rimCyan.position.set(-2.2, 2.2, 2.2);
+  scene.add(rimCyan);
+
+  const rimMagenta = new THREE.PointLight(CONFIG.colors.magenta, 2.8, 12);
+  rimMagenta.position.set(2.2, 2.0, -2.2);
+  scene.add(rimMagenta);
+}
+setupLighting();
+
+/* ================================================================================
+   SECTION 4 — SHARED MATERIALS & HELPERS
+   Centralizing materials avoids accidental duplicates and keeps the palette
+   consistent across the car, road, and obstacles.
+   ================================================================================ */
+const materials = {
+  bodyPaint: new THREE.MeshStandardMaterial({
+    color: 0x101015, metalness: 0.85, roughness: 0.25,
+    emissive: 0x00151a, emissiveIntensity: 0.55
+  }),
+  darkTrim: new THREE.MeshStandardMaterial({ color: 0x08080a, metalness: 0.6, roughness: 0.5 }),
+  carbonTrim: new THREE.MeshStandardMaterial({ color: 0x0c0c10, metalness: 0.35, roughness: 0.75 }),
+  brushedSilver: new THREE.MeshStandardMaterial({ color: 0xb9c2c8, metalness: 1.0, roughness: 0.3 }),
+  glass: new THREE.MeshStandardMaterial({
+    color: 0x0a1418, metalness: 0.9, roughness: 0.08,
+    transparent: true, opacity: 0.85
+  }),
+  discMetal: new THREE.MeshStandardMaterial({ color: 0x9aa0a4, metalness: 0.9, roughness: 0.3 }),
+  headlightGlow: new THREE.MeshStandardMaterial({
+    color: 0x001217, emissive: CONFIG.colors.cyan, emissiveIntensity: 1.4
+  }),
+  taillightGlow: new THREE.MeshStandardMaterial({
+    color: 0x170003, emissive: CONFIG.colors.danger, emissiveIntensity: 1.2
+  }),
+  caliperGlow: new THREE.MeshStandardMaterial({
+    color: 0x001217, emissive: CONFIG.colors.cyan, emissiveIntensity: 0.9,
+    metalness: 0.4, roughness: 0.4
+  })
+};
+
+// crisp black edge outline for any mesh — gives the "hacker HUD" line-art look
+// and keeps silhouettes sharp even without antialiasing-heavy post effects.
+const edgeOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+function withEdges(mesh, thresholdAngle = 18){
+  const edgeGeometry = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
+  const edgeLines = new THREE.LineSegments(edgeGeometry, edgeOutlineMaterial);
+  mesh.add(edgeLines);
   return mesh;
 }
 
-/* ============================================================
-   ROAD — dark asphalt strip + glowing lane divider lines
-   ============================================================ */
-const roadWidth = CONFIG.laneWidth * CONFIG.laneCount + 1.5;
-const road = new THREE.Mesh(
-  new THREE.PlaneGeometry(roadWidth, 200),
-  new THREE.MeshStandardMaterial({ color: 0x050507, metalness: 0.4, roughness: 0.8 })
-);
-road.rotation.x = -Math.PI / 2;
-road.position.z = -70;
-scene.add(road);
+// frame-rate independent smoothing (exponential damp) — used for lane changes
+// and any value that should ease rather than snap or move linearly.
+function damp(current, target, lambda, dt){
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+function clamp(value, min, max){
+  return Math.max(min, Math.min(max, value));
+}
 
+// maps a lane index (0..laneCount-1) to a world-space X position, centered on 0
 function laneCenterX(laneIndex){
-  // lane 0 is left-most, centered lanes straddle x = 0
-  const offset = (laneIndex - (CONFIG.laneCount - 1) / 2) * CONFIG.laneWidth;
-  return offset;
-}
-for (let i = 0; i <= CONFIG.laneCount; i++){
-  const x = (i - CONFIG.laneCount / 2) * CONFIG.laneWidth;
-  const divider = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.05, 200),
-    new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.5 })
-  );
-  divider.rotation.x = -Math.PI / 2;
-  divider.position.set(x, 0.01, -70);
-  scene.add(divider);
+  const middleIndex = (CONFIG.laneCount - 1) / 2;
+  return (laneIndex - middleIndex) * CONFIG.laneWidth;
 }
 
-/* ============================================================
-   THE CAR — sharp, low, sports-car silhouette (Hot Wheels vibe)
-   ============================================================ */
-function buildCar(){
-  const group = new THREE.Group();
+/* ================================================================================
+   SECTION 5 — CAR CONSTRUCTION
+   Split into small, named functions so each body part can be tweaked in
+   isolation. assembleCar() wires everything into one group and returns
+   references the game loop needs (wheels to spin, body to lean/bob).
+   ================================================================================ */
 
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x101015, metalness: 0.85, roughness: 0.25, emissive: 0x00151a, emissiveIntensity: 0.6 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x08080a, metalness: 0.6, roughness: 0.5 });
-  const glassMat = new THREE.MeshStandardMaterial({ color: 0x0a1418, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.85 });
-  const cyanEmissive = new THREE.MeshStandardMaterial({ color: 0x001217, emissive: CONFIG.colors.cyan, emissiveIntensity: 1.4 });
-  const redEmissive = new THREE.MeshStandardMaterial({ color: 0x170003, emissive: CONFIG.colors.danger, emissiveIntensity: 1.2 });
+// main volume: chassis, hood, tapered nose, cabin, rear deck
+function createCarBody(){
+  const bodyGroup = new THREE.Group();
 
-  // low, wide chassis
-  const chassis = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.32, 3.6), bodyMat));
+  const chassis = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.7, 0.32, 3.6), materials.bodyPaint
+  ));
   chassis.position.y = 0.42;
-  group.add(chassis);
+  bodyGroup.add(chassis);
 
-  // sloped hood (angled box gives a sharp, non-blocky front end)
-  const hood = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.22, 1.1), bodyMat));
+  // sloped hood — an angled box instead of a flat one avoids a "blocky" front end
+  const hood = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.55, 0.22, 1.1), materials.bodyPaint
+  ));
   hood.position.set(0, 0.58, 1.35);
   hood.rotation.x = 0.12;
-  group.add(hood);
+  bodyGroup.add(hood);
 
-  // tapered nose (flattened cone reads as a pointed sports-car front)
-  const nose = addEdges(new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.9, 4), bodyMat));
+  // tapered nose — a flattened, rotated cone reads as a pointed sports-car front
+  const nose = withEdges(new THREE.Mesh(
+    new THREE.ConeGeometry(0.85, 0.9, 4), materials.bodyPaint
+  ));
   nose.rotation.x = Math.PI / 2;
   nose.rotation.y = Math.PI / 4;
   nose.scale.set(1, 1, 0.5);
   nose.position.set(0, 0.44, 2.05);
-  group.add(nose);
+  bodyGroup.add(nose);
 
-  // cabin wedge, swept back
-  const cabin = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.4, 1.5), bodyMat));
+  // cabin, swept back slightly for a "wedge" profile
+  const cabin = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.25, 0.4, 1.5), materials.bodyPaint
+  ));
   cabin.position.set(0, 0.78, -0.25);
   cabin.rotation.x = -0.05;
-  group.add(cabin);
+  bodyGroup.add(cabin);
 
-  // windshield (raked, not vertical — key to a "sharp" silhouette)
-  const windshield = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.06), glassMat));
+  // roof spine — a thin raised ridge, a classic hero-car detail line
+  const roofSpine = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.05, 1.2), materials.carbonTrim
+  ));
+  roofSpine.position.set(0, 0.995, -0.25);
+  bodyGroup.add(roofSpine);
+
+  const rearDeck = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.3, 0.9), materials.bodyPaint
+  ));
+  rearDeck.position.set(0, 0.6, -1.55);
+  bodyGroup.add(rearDeck);
+
+  return bodyGroup;
+}
+
+// aero details: splitter, canards, side skirts — non-glowing, purely geometric
+function createAeroDetails(){
+  const aeroGroup = new THREE.Group();
+
+  const frontSplitter = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.35, 0.05, 0.35), materials.carbonTrim
+  ));
+  frontSplitter.position.set(0, 0.28, 2.4);
+  aeroGroup.add(frontSplitter);
+
+  [0.55, -0.55].forEach(xSide => {
+    const canard = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.03, 0.16), materials.carbonTrim
+    ));
+    canard.position.set(xSide, 0.42, 2.15);
+    canard.rotation.z = xSide > 0 ? 0.15 : -0.15;
+    aeroGroup.add(canard);
+  });
+
+  [0.87, -0.87].forEach(xSide => {
+    const sideSkirt = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.08, 2.6), materials.carbonTrim
+    ));
+    sideSkirt.position.set(xSide, 0.32, 0);
+    aeroGroup.add(sideSkirt);
+  });
+
+  return aeroGroup;
+}
+
+// windshield + door glass + mirrors
+function createGlassAndMirrors(){
+  const glassGroup = new THREE.Group();
+
+  const windshield = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.1, 0.35, 0.06), materials.glass
+  ));
   windshield.position.set(0, 0.92, 0.5);
   windshield.rotation.x = -0.55;
-  group.add(windshield);
+  glassGroup.add(windshield);
 
-  // rear deck + spoiler
-  const rearDeck = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.9), bodyMat));
-  rearDeck.position.set(0, 0.6, -1.55);
-  group.add(rearDeck);
+  const rearGlass = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.15, 0.3, 0.06), materials.glass
+  ));
+  rearGlass.position.set(0, 0.88, -0.95);
+  rearGlass.rotation.x = 0.5;
+  glassGroup.add(rearGlass);
 
-  const spoiler = addEdges(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.06, 0.35), darkMat));
-  spoiler.position.set(0, 0.95, -1.9);
-  group.add(spoiler);
-  [0.5, -0.5].forEach(x => {
-    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.06), darkMat);
-    strut.position.set(x, 0.78, -1.9);
-    group.add(strut);
+  [0.72, -0.72].forEach(xSide => {
+    const mirrorStalk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6), materials.darkTrim
+    );
+    mirrorStalk.rotation.z = Math.PI / 2.5;
+    mirrorStalk.position.set(xSide * 0.78, 0.78, 0.75);
+    glassGroup.add(mirrorStalk);
+
+    const mirrorHousing = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.08, 0.08), materials.bodyPaint
+    ));
+    mirrorHousing.position.set(xSide * 0.88, 0.82, 0.75);
+    glassGroup.add(mirrorHousing);
   });
 
-  // headlights + taillights
-  [0.55, -0.55].forEach(x => {
-    const hl = addEdges(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.06), cyanEmissive));
-    hl.position.set(x, 0.48, 2.55);
-    group.add(hl);
+  return glassGroup;
+}
 
-    const tl = addEdges(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.06), redEmissive));
-    tl.position.set(x, 0.55, -2.0);
-    group.add(tl);
+// spoiler + support struts
+function createSpoiler(){
+  const spoilerGroup = new THREE.Group();
+
+  const wing = withEdges(new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.06, 0.35), materials.darkTrim
+  ));
+  wing.position.set(0, 0.95, -1.9);
+  spoilerGroup.add(wing);
+
+  [0.5, -0.5].forEach(xSide => {
+    const strut = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.28, 0.06), materials.darkTrim
+    );
+    strut.position.set(xSide, 0.78, -1.9);
+    spoilerGroup.add(strut);
   });
 
-  // wheels — tyre + simple glowing rim
+  return spoilerGroup;
+}
+
+// headlights, taillights, and their bezels
+function createLights(){
+  const lightsGroup = new THREE.Group();
+
+  [0.55, -0.55].forEach(xSide => {
+    const headlightBezel = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 0.15, 0.07), materials.brushedSilver
+    ));
+    headlightBezel.position.set(xSide, 0.48, 2.57);
+    lightsGroup.add(headlightBezel);
+
+    const headlight = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.12, 0.06), materials.headlightGlow
+    ));
+    headlight.position.set(xSide, 0.48, 2.59);
+    lightsGroup.add(headlight);
+
+    const taillightBezel = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.34, 0.15, 0.07), materials.brushedSilver
+    ));
+    taillightBezel.position.set(xSide, 0.55, -2.02);
+    lightsGroup.add(taillightBezel);
+
+    const taillight = withEdges(new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.12, 0.06), materials.taillightGlow
+    ));
+    taillight.position.set(xSide, 0.55, -2.0);
+    lightsGroup.add(taillight);
+  });
+
+  return lightsGroup;
+}
+
+// wheels — tyre, rim, brake disc, and a static caliper.
+// Returns the array of tyre meshes so the game loop can spin them.
+function createWheels(){
+  const wheelsGroup = new THREE.Group();
+  const spinningWheelMeshes = [];
+
   const wheelPositions = [
-    [-0.85, 0.32, 1.1], [0.85, 0.32, 1.1],
-    [-0.85, 0.32, -1.1], [0.85, 0.32, -1.1]
+    { x: -0.85, y: 0.32, z:  1.1, side: -1 },
+    { x:  0.85, y: 0.32, z:  1.1, side:  1 },
+    { x: -0.85, y: 0.32, z: -1.1, side: -1 },
+    { x:  0.85, y: 0.32, z: -1.1, side:  1 }
   ];
-  const tyreGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 18);
-  const rimGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.28, 18);
-  const wheels = [];
-  wheelPositions.forEach(([x,y,z]) => {
-    const tyre = new THREE.Mesh(tyreGeo, darkMat);
+
+  const tyreGeometry = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 18);
+  const rimGeometry  = new THREE.CylinderGeometry(0.17, 0.17, 0.28, 18);
+  const discGeometry = new THREE.CylinderGeometry(0.13, 0.13, 0.3, 16);
+
+  wheelPositions.forEach(({ x, y, z, side }) => {
+    const cornerGroup = new THREE.Group();
+    cornerGroup.position.set(x, y, z);
+    wheelsGroup.add(cornerGroup);
+
+    const tyre = new THREE.Mesh(tyreGeometry, materials.darkTrim);
     tyre.rotation.z = Math.PI / 2;
-    tyre.position.set(x, y, z);
-    group.add(tyre);
+    cornerGroup.add(tyre);
+    spinningWheelMeshes.push(tyre);
 
-    const rim = new THREE.Mesh(rimGeo, cyanEmissive);
+    const disc = new THREE.Mesh(discGeometry, materials.discMetal);
+    disc.rotation.z = Math.PI / 2;
+    cornerGroup.add(disc);
+    spinningWheelMeshes.push(disc); // discs spin with the wheel too
+
+    const rim = new THREE.Mesh(rimGeometry, materials.headlightGlow);
     rim.rotation.z = Math.PI / 2;
-    rim.position.set(x, y, z);
-    group.add(rim);
+    cornerGroup.add(rim);
+    spinningWheelMeshes.push(rim);
 
-    wheels.push(tyre);
+    // caliper stays fixed to the chassis, doesn't rotate with the wheel
+    const caliper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.16, 0.18), materials.caliperGlow
+    );
+    caliper.position.set(side * 0.16, 0, 0);
+    cornerGroup.add(caliper);
   });
 
-  // flat underglow plate (crisp emissive color, no bloom pass = no smear)
+  return { wheelsGroup, spinningWheelMeshes };
+}
+
+// flat emissive plate under the chassis — reads as neon underglow.
+// It's a plain, crisp-edged color, not a bloom effect, so it never smears.
+function createUnderglow(){
   const underGlow = new THREE.Mesh(
     new THREE.PlaneGeometry(1.5, 3.2),
-    new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.35 })
+    new THREE.MeshBasicMaterial({
+      color: CONFIG.colors.cyan, transparent: true, opacity: 0.35
+    })
   );
   underGlow.rotation.x = -Math.PI / 2;
   underGlow.position.y = 0.06;
-  group.add(underGlow);
-
-  group.userData.wheels = wheels;
-  return group;
+  return underGlow;
 }
 
-const car = buildCar();
+// assembles every part above into one drivable car object
+function assembleCar(){
+  const carGroup = new THREE.Group();
+
+  carGroup.add(createCarBody());
+  carGroup.add(createAeroDetails());
+  carGroup.add(createGlassAndMirrors());
+  carGroup.add(createSpoiler());
+  carGroup.add(createLights());
+
+  const { wheelsGroup, spinningWheelMeshes } = createWheels();
+  carGroup.add(wheelsGroup);
+  carGroup.add(createUnderglow());
+
+  return { carGroup, spinningWheelMeshes };
+}
+
+const { carGroup: car, spinningWheelMeshes } = assembleCar();
 scene.add(car);
 
-/* ============================================================
-   GAME STATE
-   ============================================================ */
-let currentLane = Math.floor(CONFIG.laneCount / 2); // start in the middle lane
-let targetX = laneCenterX(currentLane);
+/* ================================================================================
+   SECTION 6 — ROAD & ENVIRONMENT
+   ================================================================================ */
+function createRoad(){
+  const roadWidth = CONFIG.laneWidth * CONFIG.laneCount + 1.5;
 
-let obstacles = [];       // active obstacle meshes
-let speed = CONFIG.baseSpeed;
-let spawnTimer = 0;
-let spawnInterval = CONFIG.spawnIntervalStart;
-let elapsed = 0;
-let score = 0;
-let gameOver = false;
+  const roadSurface = new THREE.Mesh(
+    new THREE.PlaneGeometry(roadWidth, 220),
+    new THREE.MeshStandardMaterial({ color: 0x050507, metalness: 0.4, roughness: 0.8 })
+  );
+  roadSurface.rotation.x = -Math.PI / 2;
+  roadSurface.position.z = -70;
+  scene.add(roadSurface);
 
-const scoreText = document.getElementById("scoreText");
-const gameOverEl = document.getElementById("gameOver");
-const finalScoreText = document.getElementById("finalScoreText");
-const restartBtn = document.getElementById("restartBtn");
+  // glowing lane divider lines, one at each lane boundary (laneCount + 1 lines total)
+  for (let dividerIndex = 0; dividerIndex <= CONFIG.laneCount; dividerIndex++){
+    const dividerX = (dividerIndex - CONFIG.laneCount / 2) * CONFIG.laneWidth;
+    const divider = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.05, 220),
+      new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.5 })
+    );
+    divider.rotation.x = -Math.PI / 2;
+    divider.position.set(dividerX, 0.01, -70);
+    scene.add(divider);
+  }
 
-/* ============================================================
-   OBSTACLES — simple neon cubes / barriers
-   ============================================================ */
-const obstacleColors = [CONFIG.colors.cyan, CONFIG.colors.magenta, CONFIG.colors.amber];
+  return roadWidth;
+}
+const roadWidth = createRoad();
+
+// distant neon pylons along both edges of the road, purely for atmosphere —
+// static and cheap (no per-frame cost beyond the parallax scroll below).
+function createRoadsidePylons(){
+  const pylonGroup = new THREE.Group();
+  const pylonMaterial = new THREE.MeshBasicMaterial({
+    color: CONFIG.colors.magenta, transparent: true, opacity: 0.55
+  });
+  const pylonGeometry = new THREE.BoxGeometry(0.15, 3, 0.15);
+
+  const sideOffset = roadWidth / 2 + 1.2;
+  for (let i = 0; i < 26; i++){
+    [-1, 1].forEach(side => {
+      const pylon = new THREE.Mesh(pylonGeometry, pylonMaterial);
+      pylon.position.set(side * sideOffset, 1.5, -i * 8);
+      pylonGroup.add(pylon);
+    });
+  }
+  scene.add(pylonGroup);
+}
+createRoadsidePylons();
+
+/* ================================================================================
+   SECTION 7 — OBSTACLE SYSTEM
+   ================================================================================ */
+const activeObstacles = [];
+const obstacleColorPalette = [CONFIG.colors.cyan, CONFIG.colors.magenta, CONFIG.colors.amber];
 
 function spawnObstacle(){
-  const lane = Math.floor(Math.random() * CONFIG.laneCount);
-  const color = obstacleColors[Math.floor(Math.random() * obstacleColors.length)];
+  const laneIndex = Math.floor(Math.random() * CONFIG.laneCount);
+  const emissiveColor = obstacleColorPalette[Math.floor(Math.random() * obstacleColorPalette.length)];
 
-  // occasionally spawn a low wide "barrier" instead of a cube, for variety
+  // occasionally spawn a low, wide "barrier" instead of a cube, for visual variety
   const isBarrier = Math.random() < 0.3;
-  const geo = isBarrier
+  const geometry = isBarrier
     ? new THREE.BoxGeometry(CONFIG.laneWidth * 0.8, 0.5, 0.4)
     : new THREE.BoxGeometry(1.1, 1.1, 1.1);
 
-  const mat = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshStandardMaterial({
     color: 0x050505,
-    emissive: color,
+    emissive: emissiveColor,
     emissiveIntensity: 1.1,
     metalness: 0.3,
     roughness: 0.6
   });
 
-  const obstacle = addEdges(new THREE.Mesh(geo, mat));
-  obstacle.position.set(laneCenterX(lane), isBarrier ? 0.28 : 0.58, CONFIG.spawnDistance);
-  obstacle.userData.lane = lane;
+  const obstacle = withEdges(new THREE.Mesh(geometry, material));
+  obstacle.position.set(
+    laneCenterX(laneIndex),
+    isBarrier ? 0.28 : 0.58,
+    CONFIG.spawnZ
+  );
+  obstacle.userData.lane = laneIndex;
+  obstacle.userData.hasBeenPassed = false;
+
   scene.add(obstacle);
-  obstacles.push(obstacle);
+  activeObstacles.push(obstacle);
 }
 
-/* ============================================================
-   INPUT — arrow keys or A/D to switch lanes
-   ============================================================ */
-addEventListener("keydown", (e) => {
-  if (gameOver) return;
-  if (e.code === "ArrowLeft" || e.code === "KeyA"){
-    currentLane = Math.max(0, currentLane - 1);
-    targetX = laneCenterX(currentLane);
-  }
-  if (e.code === "ArrowRight" || e.code === "KeyD"){
-    currentLane = Math.min(CONFIG.laneCount - 1, currentLane + 1);
-    targetX = laneCenterX(currentLane);
-  }
-});
+// advances every obstacle, awards score for ones just passed, and removes
+// ones that have scrolled safely behind the camera.
+function updateObstacles(dt, currentSpeed){
+  for (let i = activeObstacles.length - 1; i >= 0; i--){
+    const obstacle = activeObstacles[i];
+    obstacle.position.z += dt * currentSpeed;
 
-/* ============================================================
-   COLLISION CHECK
-   ============================================================ */
-function checkCollision(obstacle){
-  const closeEnoughInZ = Math.abs(obstacle.position.z - CONFIG.carZ) < CONFIG.collisionZTolerance;
-  if (!closeEnoughInZ) return false;
-  const sameLaneX = Math.abs(obstacle.position.x - car.position.x) < CONFIG.laneWidth * CONFIG.collisionLaneTolerance / 2;
-  return sameLaneX;
+    // award points the instant an un-collided obstacle crosses the car's Z
+    if (!obstacle.userData.hasBeenPassed && obstacle.position.z > CONFIG.carZ + CONFIG.collisionZWindow){
+      obstacle.userData.hasBeenPassed = true;
+      gameState.score += CONFIG.pointsPerObstaclePassed;
+    }
+
+    if (obstacle.position.z > CONFIG.despawnZ){
+      scene.remove(obstacle);
+      activeObstacles.splice(i, 1);
+    }
+  }
 }
 
-/* ============================================================
-   GAME OVER / RESTART
-   ============================================================ */
+function clearAllObstacles(){
+  activeObstacles.forEach(obstacle => scene.remove(obstacle));
+  activeObstacles.length = 0;
+}
+
+/* ================================================================================
+   SECTION 8 — INPUT HANDLING
+   ================================================================================ */
+function handleLaneInput(event){
+  if (!gameState.isRunning) return;
+
+  if (event.code === "ArrowLeft" || event.code === "KeyA"){
+    gameState.currentLane = Math.max(0, gameState.currentLane - 1);
+    gameState.targetCarX = laneCenterX(gameState.currentLane);
+  }
+  if (event.code === "ArrowRight" || event.code === "KeyD"){
+    gameState.currentLane = Math.min(CONFIG.laneCount - 1, gameState.currentLane + 1);
+    gameState.targetCarX = laneCenterX(gameState.currentLane);
+  }
+}
+window.addEventListener("keydown", handleLaneInput);
+
+/* ================================================================================
+   SECTION 9 — GAME STATE
+   ================================================================================ */
+const gameState = {
+  isRunning: false,
+  currentLane: Math.floor(CONFIG.laneCount / 2),
+  targetCarX: 0,
+  currentSpeed: CONFIG.baseSpeed,
+  spawnTimer: 0,
+  spawnInterval: CONFIG.spawnIntervalStart,
+  score: 0,
+  bestScore: 0,
+  elapsedTime: 0
+};
+gameState.targetCarX = laneCenterX(gameState.currentLane);
+
+function recalculateDifficulty(){
+  gameState.currentSpeed = clamp(
+    CONFIG.baseSpeed + gameState.score * CONFIG.speedGainPerPoint,
+    CONFIG.baseSpeed,
+    CONFIG.maxSpeed
+  );
+  gameState.spawnInterval = clamp(
+    CONFIG.spawnIntervalStart - gameState.score * CONFIG.spawnIntervalDecayPerPoint,
+    CONFIG.spawnIntervalMin,
+    CONFIG.spawnIntervalStart
+  );
+}
+
+/* ================================================================================
+   SECTION 10 — COLLISION DETECTION
+   ================================================================================ */
+function isCollidingWithCar(obstacle){
+  const withinZWindow = Math.abs(obstacle.position.z - CONFIG.carZ) < CONFIG.collisionZWindow;
+  if (!withinZWindow) return false;
+
+  const laneOverlap = Math.abs(obstacle.position.x - car.position.x)
+    < (CONFIG.laneWidth * CONFIG.collisionLaneFraction) / 2;
+  return laneOverlap;
+}
+
+/* ================================================================================
+   SECTION 11 — UI / HUD WIRING
+   ================================================================================ */
+const startOverlay = document.getElementById("startOverlay");
+const startButton = document.getElementById("startButton");
+const gameOverOverlay = document.getElementById("gameOverOverlay");
+const restartButton = document.getElementById("restartButton");
+
+const scoreText = document.getElementById("scoreText");
+const bestText = document.getElementById("bestText");
+const statusLine = document.getElementById("statusLine");
+const speedBarFill = document.getElementById("speedBarFill");
+const finalScoreText = document.getElementById("finalScoreText");
+const finalBestText = document.getElementById("finalBestText");
+
+function refreshHud(){
+  scoreText.textContent = `SCORE: ${Math.floor(gameState.score)}`;
+  bestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
+  statusLine.textContent = `LANE ${gameState.currentLane + 1} / ${CONFIG.laneCount} — HOLD THE LINE`;
+
+  const speedFraction = clamp(
+    (gameState.currentSpeed - CONFIG.baseSpeed) / (CONFIG.maxSpeed - CONFIG.baseSpeed),
+    0, 1
+  );
+  speedBarFill.style.width = `${(speedFraction * 100).toFixed(1)}%`;
+}
+
+/* ================================================================================
+   SECTION 12 — GAME FLOW (start / game over / restart)
+   ================================================================================ */
+function startGame(){
+  startOverlay.style.display = "none";
+  gameOverOverlay.style.display = "none";
+
+  clearAllObstacles();
+  gameState.isRunning = true;
+  gameState.currentLane = Math.floor(CONFIG.laneCount / 2);
+  gameState.targetCarX = laneCenterX(gameState.currentLane);
+  car.position.x = gameState.targetCarX;
+  gameState.currentSpeed = CONFIG.baseSpeed;
+  gameState.spawnTimer = 0;
+  gameState.spawnInterval = CONFIG.spawnIntervalStart;
+  gameState.score = 0;
+  gameState.elapsedTime = 0;
+
+  refreshHud();
+  clock.getDelta(); // avoid a large dt spike on the very first frame after idling on the overlay
+}
+
 function triggerGameOver(){
-  gameOver = true;
-  finalScoreText.textContent = `FINAL SCORE: ${Math.floor(score)}`;
-  gameOverEl.style.display = "flex";
+  gameState.isRunning = false;
+  gameState.bestScore = Math.max(gameState.bestScore, gameState.score);
+
+  finalScoreText.textContent = `FINAL SCORE: ${Math.floor(gameState.score)}`;
+  finalBestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
+  gameOverOverlay.style.display = "flex";
 }
 
-function restartGame(){
-  // clear obstacles
-  obstacles.forEach(o => scene.remove(o));
-  obstacles = [];
+startButton.addEventListener("click", startGame);
+restartButton.addEventListener("click", startGame);
 
-  currentLane = Math.floor(CONFIG.laneCount / 2);
-  targetX = laneCenterX(currentLane);
-  speed = CONFIG.baseSpeed;
-  spawnTimer = 0;
-  spawnInterval = CONFIG.spawnIntervalStart;
-  elapsed = 0;
-  score = 0;
-  gameOver = false;
+/* ================================================================================
+   SECTION 13 — PER-FRAME CAR ANIMATION (lean, bob, wheel spin)
+   ================================================================================ */
+function updateCarAnimation(dt){
+  // smooth, eased lane switching — never a linear snap
+  car.position.x = damp(car.position.x, gameState.targetCarX, CONFIG.laneSwitchSharpness, dt);
 
-  gameOverEl.style.display = "none";
+  // slight body lean into the direction of the lane change
+  const lateralDelta = gameState.targetCarX - car.position.x;
+  car.rotation.z = damp(car.rotation.z, lateralDelta * CONFIG.bodyLeanAmount, 8, dt);
+
+  // subtle idle vertical vibration that intensifies with speed — sells the
+  // feeling of a powerful engine at idle/full throttle without any physics engine
+  const bobFrequency = CONFIG.idleBobFrequencyBase + gameState.currentSpeed * CONFIG.idleBobFrequencyPerSpeed;
+  car.position.y = Math.sin(gameState.elapsedTime * bobFrequency) * CONFIG.idleBobAmplitude;
+
+  // wheels + discs + rims all spin together, rate tied to current speed
+  spinningWheelMeshes.forEach(wheelPart => {
+    wheelPart.rotation.x -= dt * (2 + gameState.currentSpeed * CONFIG.wheelSpinPerSpeed);
+  });
 }
-restartBtn.addEventListener("click", restartGame);
 
-/* ============================================================
-   MAIN LOOP
-   ============================================================ */
+/* ================================================================================
+   SECTION 14 — MAIN LOOP
+   ================================================================================ */
 const clock = new THREE.Clock();
 
 function animate(){
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  if (!gameOver){
-    elapsed += dt;
+  if (gameState.isRunning){
+    gameState.elapsedTime += dt;
 
-    // difficulty ramps smoothly over time
-    speed = Math.min(CONFIG.maxSpeed, CONFIG.baseSpeed + elapsed * CONFIG.speedRamp * 10);
-    spawnInterval = Math.max(CONFIG.spawnIntervalMin, CONFIG.spawnIntervalStart - elapsed * 0.01);
+    recalculateDifficulty();
+    updateCarAnimation(dt);
 
-    // smooth lane switching (eased, not a snap-teleport)
-    car.position.x += (targetX - car.position.x) * Math.min(1, CONFIG.laneSwitchSpeed * dt);
-    car.rotation.z = (targetX - car.position.x) * 0.12; // slight lean into the lane change
-    car.userData.wheels.forEach(w => w.rotation.x -= dt * (6 + speed * 0.3));
-
-    // spawn obstacles on a timer
-    spawnTimer += dt;
-    if (spawnTimer >= spawnInterval){
-      spawnTimer = 0;
+    // spawn obstacles on a timer that speeds up as difficulty rises
+    gameState.spawnTimer += dt;
+    if (gameState.spawnTimer >= gameState.spawnInterval){
+      gameState.spawnTimer = 0;
       spawnObstacle();
     }
 
-    // move obstacles toward the camera, check collisions, clean up passed ones
-    for (let i = obstacles.length - 1; i >= 0; i--){
-      const o = obstacles[i];
-      o.position.z += dt * speed;
+    updateObstacles(dt, gameState.currentSpeed);
 
-      if (checkCollision(o)){
+    // check collisions after movement so obstacle positions are current
+    for (const obstacle of activeObstacles){
+      if (isCollidingWithCar(obstacle)){
         triggerGameOver();
         break;
       }
-      if (o.position.z > CONFIG.despawnDistance){
-        scene.remove(o);
-        obstacles.splice(i, 1);
-      }
     }
 
-    // score climbs with survival time and speed — rewards avoiding obstacles longer
-    score += dt * (10 + speed * 0.5);
-    scoreText.textContent = `SCORE: ${Math.floor(score)}`;
+    refreshHud();
   }
 
   renderer.render(scene, camera);
 }
 animate();
 
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+/* ================================================================================
+   SECTION 15 — RESIZE HANDLING
+   ================================================================================ */
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
 </body>
