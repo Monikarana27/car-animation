@@ -189,6 +189,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
 
 /* ============================================================
    0. ENTRY / MAGNETIC BUTTON
@@ -276,6 +277,9 @@ composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 1.15, 0.75, 0.15);
 composer.addPass(bloomPass);
+
+const afterimagePass = new AfterimagePass(0.55); // damp value is updated live based on speed
+composer.addPass(afterimagePass);
 
 const gradeShader = {
   uniforms:{ tDiffuse:{ value:null }, time:{ value:0 } },
@@ -640,7 +644,7 @@ wheelPositions.forEach(([x,y,z]) => {
   wheelGroup.position.set(x, y, z);
   car.add(wheelGroup);
 
-  wheels.push({ spinGroup });
+  wheels.push({ spinGroup, group:wheelGroup, baseY:y, cornerX:Math.sign(x), cornerZ:Math.sign(z), bouncePhase:Math.random()*Math.PI*2 });
 });
 
 // underglow
@@ -750,27 +754,104 @@ pilot.add(wheelRing);
 pilot.position.set(-0.1, 0, 0);
 car.add(pilot);
 
+/* ---- Stylized hero outlines (inverted-hull technique) on the main body + tyres ---- */
+function addCarOutlines(root, materials, thickness){
+  const outlineMat = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
+  root.traverse(obj => {
+    if (obj.isMesh && materials.includes(obj.material)){
+      const outline = new THREE.Mesh(obj.geometry, outlineMat);
+      outline.scale.multiplyScalar(thickness);
+      obj.add(outline);
+    }
+  });
+}
+addCarOutlines(car, [paintMat, darkTrim], 1.045);
+
 /* ============================================================
-   6. CINEMATIC CAMERA DIRECTOR
+   6. PHYSICS — speed, momentum, body roll/pitch, suspension, drift
    ============================================================ */
 const clock = new THREE.Clock();
 let mode = "intro"; // intro -> cinematic
-let introT = 0;
 
-// keyframes: {pos, look, dur}
+// smooth exponential damp — frame-rate independent, always eased, never linear
+function damp(current, target, lambda, dt){
+  return current + (target - current) * (1 - Math.exp(-lambda * dt));
+}
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+let speed = 0.32;          // normalized 0..1 "how fast the world is rushing past"
+let prevSpeed = 0.32;
+let forwardAccel = 0;
+let spaceHeld = false;
+
+let lateralX = 0, prevLateralX = 0, lateralVel = 0, prevLateralVel = 0, lateralAccel = 0;
+let roll = 0, pitch = 0, yaw = 0, driftYaw = 0;
+
+addEventListener("keydown", (e) => { if (e.code === "Space"){ spaceHeld = true; noteInteraction(); } });
+addEventListener("keyup", (e) => { if (e.code === "Space"){ spaceHeld = false; } });
+
+function updatePhysics(dt, t){
+  // --- speed ramp: slow rolling throttle profile, corners ease off, space floors it ---
+  const cruiseWave = 0.5 + 0.5 * Math.sin(t * 0.11);
+  let targetSpeed = 0.32 + cruiseWave * 0.58;
+  targetSpeed -= Math.min(0.22, Math.abs(lateralAccel) * 0.9); // brake slightly into corners
+  if (spaceHeld) targetSpeed = 1.05;
+  targetSpeed = clamp(targetSpeed, 0.12, 1.05);
+
+  const rate = speed < targetSpeed ? 0.7 : 1.9; // braking reacts faster than throttle build-up
+  speed = damp(speed, targetSpeed, rate, dt);
+  forwardAccel = (speed - prevSpeed) / Math.max(dt, 0.0001);
+  prevSpeed = speed;
+
+  // --- lateral weave (the "road") — amplitude & frequency breathe with speed ---
+  lateralX = Math.sin(t * 0.5) * (2.1 + speed * 1.3);
+  lateralVel = (lateralX - prevLateralX) / Math.max(dt, 0.0001);
+  lateralAccel = (lateralVel - prevLateralVel) / Math.max(dt, 0.0001);
+  prevLateralX = lateralX;
+  prevLateralVel = lateralVel;
+
+  // --- body roll (lean into the turn), pitch (squat/dive), yaw + drift ---
+  const targetRoll = clamp(-lateralAccel * 0.05, -0.15, 0.15);
+  const targetPitch = clamp(-forwardAccel * 1.4, -0.085, 0.085);
+  const targetYaw = clamp(-lateralVel * 0.11, -0.5, 0.5);
+  roll = damp(roll, targetRoll, 7, dt);
+  pitch = damp(pitch, targetPitch, 6, dt);
+  yaw = damp(yaw, targetYaw, 5, dt);
+  driftYaw = damp(driftYaw, clamp(-lateralAccel * 0.02, -0.12, 0.12), 4, dt); // rear steps out a beat late
+
+  car.position.x = lateralX;
+  car.position.z = 0;
+  car.rotation.set(roll, yaw + driftYaw, pitch);
+
+  // --- per-corner suspension: weight transfer + continuous tire bounce ---
+  wheels.forEach(w => {
+    const lonTransfer = forwardAccel * (-w.cornerX) * 0.5;
+    const latTransfer = lateralAccel * w.cornerZ * 0.028;
+    const bounce = Math.sin(t * 13 + w.bouncePhase) * 0.005 * (0.5 + speed);
+    const offset = clamp(lonTransfer + latTransfer + bounce, -0.045, 0.045);
+    w.group.position.y = w.baseY + offset;
+    w.spinGroup.rotation.x -= dt * (3 + speed * 15);
+  });
+
+  // chassis ride height bobs slightly with speed + a touch of the same bounce
+  car.position.y = 0.05 + Math.sin(t * 2.2) * 0.015 * (0.6 + speed);
+}
+
+/* ============================================================
+   7. CINEMATIC CAMERA DIRECTOR — shots, easing, shake, FOV ramps
+   ============================================================ */
+// -- intro flythrough (unchanged approach: eased keyframes before the drive begins) --
 const introKeyframes = [
   { pos:new THREE.Vector3(0, 3, 46),  look:new THREE.Vector3(0, 1, 0), dur:2.4 },
   { pos:new THREE.Vector3(6, 1.4, 9), look:new THREE.Vector3(0, 1, 0), dur:2.2 },
   { pos:new THREE.Vector3(-4, 2.2, 4),look:new THREE.Vector3(1, 1, 0), dur:2.0 },
   { pos:new THREE.Vector3(2.6, 5.5, 7.5), look:new THREE.Vector3(0, 1, 0), dur:2.0 },
 ];
-let kfIndex = 0;
-let kfT = 0;
+let kfIndex = 0, kfT = 0;
 const tmpCamPos = new THREE.Vector3();
 const tmpLook = new THREE.Vector3();
 let prevPos = new THREE.Vector3(0, 8, 60);
 let prevLook = new THREE.Vector3(0, 1, 0);
-
 function easeInOut(t){ return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
 
 function updateIntroCamera(dt){
@@ -782,6 +863,8 @@ function updateIntroCamera(dt){
   tmpLook.lerpVectors(prevLook, kf.look, e);
   camera.position.copy(tmpCamPos);
   camera.lookAt(tmpLook);
+  camera.fov = 50;
+  camera.updateProjectionMatrix();
   if (t >= 1){
     prevPos = kf.pos.clone();
     prevLook = kf.look.clone();
@@ -791,30 +874,162 @@ function updateIntroCamera(dt){
       mode = "cinematic";
       hud.classList.add("visible");
       vignetteEdge.classList.add("visible");
+      interactHint.style.opacity = "1";
     }
   }
 }
 
-// cinematic (post-intro) roaming camera: orbit + periodic hero close-ups
-let cineT = 0;
-const orbitRadius = 8.5;
-function updateCinematicCamera(dt, driveT){
-  cineT += dt;
-  const shake = Math.sin(driveT*14) * 0.02;
-  const angle = cineT * 0.18;
-  const heroPulse = (Math.sin(cineT * 0.25) + 1) / 2; // 0..1 slow breathing between wide + close
-  const radius = orbitRadius - heroPulse * 4.2;
-  const height = 2.6 + heroPulse * 3.2;
-  camera.position.set(
-    car.position.x + Math.sin(angle) * radius,
-    height + shake,
-    car.position.z + Math.cos(angle) * radius
-  );
-  camera.lookAt(car.position.x, 1.1, car.position.z);
+// -- shot library: each returns a desired world pos + lookAt + fov for the given car state --
+const shots = {
+  lowAngleHero(t, phase){
+    const a = phase * 0.6 + t * 0.05;
+    return {
+      pos:new THREE.Vector3(car.position.x + Math.sin(a)*3.2, 0.45, car.position.z + Math.cos(a)*4.4),
+      look:new THREE.Vector3(car.position.x, 1.15, car.position.z),
+      fov:54
+    };
+  },
+  sideTracking(t, phase, side){
+    return {
+      pos:new THREE.Vector3(car.position.x + side*6.2, 1.55, car.position.z + Math.sin(phase*0.3)*1.2),
+      look:new THREE.Vector3(car.position.x + lateralVel*0.06, 1.05, car.position.z),
+      fov:46
+    };
+  },
+  closeUp(t, phase){
+    const a = phase * 0.4;
+    return {
+      pos:new THREE.Vector3(car.position.x + Math.sin(a)*2.4, 1.0, car.position.z + Math.cos(a)*2.6),
+      look:new THREE.Vector3(car.position.x, 0.85, car.position.z),
+      fov:38
+    };
+  },
+  orbitWide(t, phase){
+    const a = phase * 0.22;
+    const pulse = (Math.sin(phase*0.2)+1)/2;
+    return {
+      pos:new THREE.Vector3(car.position.x + Math.sin(a)*(9-pulse*3), 3.4+pulse*3, car.position.z + Math.cos(a)*(9-pulse*3)),
+      look:new THREE.Vector3(car.position.x, 1.1, car.position.z),
+      fov:48
+    };
+  },
+  dollyPush(t, phase, progress){
+    const dist = 12 - progress * 8; // pushes in over the life of the shot
+    return {
+      pos:new THREE.Vector3(car.position.x - 2, 1.9, car.position.z + dist),
+      look:new THREE.Vector3(car.position.x + 1, 1.0, car.position.z),
+      fov:44
+    };
+  }
+};
+const shotNames = ["lowAngleHero","sideTracking","closeUp","orbitWide","dollyPush"];
+let currentShot = "orbitWide";
+let shotPhase = 0;
+let shotProgress = 0;
+let shotDuration = 4;
+let shotElapsed = 0;
+let shotSide = 1;
+
+function pickNextShot(){
+  let next = currentShot;
+  while (next === currentShot) next = shotNames[Math.floor(Math.random()*shotNames.length)];
+  currentShot = next;
+  shotElapsed = 0;
+  shotDuration = 3 + Math.random()*2.6;
+  shotSide = Math.random() < 0.5 ? 1 : -1;
+}
+
+// -- user interaction: drag to orbit, scroll to zoom, hold Space to accelerate --
+let camMode = "auto";
+let lastInteraction = 0;
+let dragging = false, lastPX = 0, lastPY = 0;
+let userTheta = 0.6, userPhi = 0.55, userRadius = 8.5;
+const interactHint = document.createElement("div");
+interactHint.textContent = "DRAG TO ORBIT · SCROLL TO ZOOM · HOLD SPACE TO ACCELERATE";
+Object.assign(interactHint.style, {
+  position:"fixed", left:"50%", bottom:"9%", transform:"translateX(-50%)",
+  color:"rgba(190,240,245,0.55)", fontFamily:"'Space Mono', monospace",
+  fontSize:"10px", letterSpacing:"2px", zIndex:20, pointerEvents:"none",
+  opacity:"0", transition:"opacity 1s ease"
+});
+document.body.appendChild(interactHint);
+function showInteractHint(){ interactHint.style.opacity = "1"; }
+function hideInteractHint(){ interactHint.style.opacity = "0"; }
+
+function noteInteraction(){
+  lastInteraction = performance.now();
+  camMode = "user";
+  interactHint.style.opacity = "0";
+}
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  dragging = true; lastPX = e.clientX; lastPY = e.clientY; noteInteraction();
+});
+addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  userTheta -= (e.clientX - lastPX) * 0.006;
+  userPhi = clamp(userPhi - (e.clientY - lastPY) * 0.005, 0.18, 1.35);
+  lastPX = e.clientX; lastPY = e.clientY;
+  noteInteraction();
+});
+addEventListener("pointerup", () => { dragging = false; });
+renderer.domElement.addEventListener("wheel", (e) => {
+  userRadius = clamp(userRadius + e.deltaY * 0.012, 3.5, 18);
+  noteInteraction();
+}, { passive:true });
+
+const camPos = new THREE.Vector3(0, 6, 16);
+const camLook = new THREE.Vector3(0, 1, 0);
+let camFov = 50;
+
+function updateCinematicCamera(dt, t){
+  // resume the director automatically after a few seconds of no user input
+  if (camMode === "user" && !dragging && performance.now() - lastInteraction > 4000){
+    camMode = "auto";
+  }
+
+  let desired;
+  if (camMode === "user"){
+    const p = new THREE.Vector3(
+      car.position.x + userRadius * Math.sin(userTheta) * Math.cos(userPhi),
+      1.1 + userRadius * Math.sin(userPhi),
+      car.position.z + userRadius * Math.cos(userTheta) * Math.cos(userPhi)
+    );
+    desired = { pos:p, look:new THREE.Vector3(car.position.x, 1.1, car.position.z), fov:50 };
+  } else {
+    shotElapsed += dt;
+    shotPhase += dt;
+    shotProgress = clamp(shotElapsed / shotDuration, 0, 1);
+    if (shotElapsed >= shotDuration) pickNextShot();
+    desired = shots[currentShot](t, shotPhase, shotSide, shotProgress);
+  }
+
+  // speed sells drama: FOV widens and shake intensifies with acceleration
+  const speedFov = desired.fov + speed * 10 + Math.abs(forwardAccel) * 18;
+  const posLambda = camMode === "user" ? 7 : 2.6;   // director moves like a dolly; drag feels responsive
+  camPos.x = damp(camPos.x, desired.pos.x, posLambda, dt);
+  camPos.y = damp(camPos.y, desired.pos.y, posLambda, dt);
+  camPos.z = damp(camPos.z, desired.pos.z, posLambda, dt);
+  camLook.x = damp(camLook.x, desired.look.x, 5, dt);
+  camLook.y = damp(camLook.y, desired.look.y, 5, dt);
+  camLook.z = damp(camLook.z, desired.look.z, 5, dt);
+  camFov = damp(camFov, speedFov, 3, dt);
+
+  // procedural handheld shake — grows with acceleration/braking/cornering intensity
+  const intensity = clamp(Math.abs(forwardAccel) * 1.6 + Math.abs(lateralAccel) * 0.5, 0, 1);
+  const shakeX = (Math.sin(t*23.1) * 0.6 + Math.sin(t*11.3) * 0.4) * 0.05 * intensity;
+  const shakeY = (Math.sin(t*27.7) * 0.6 + Math.sin(t*9.7) * 0.4) * 0.04 * intensity;
+
+  camera.position.set(camPos.x + shakeX, camPos.y + shakeY, camPos.z);
+  camera.lookAt(camLook);
+  camera.fov = camFov;
+  camera.updateProjectionMatrix();
+
+  // motion blur trail strengthens with speed
+  afterimagePass.uniforms["damp"].value = clamp(0.25 + speed * 0.55, 0.25, 0.82);
 }
 
 /* ============================================================
-   7. HUD refs + animate loop
+   8. HUD refs + animate loop
    ============================================================ */
 const hud = document.getElementById("hud");
 const vignetteEdge = document.getElementById("vignetteEdge");
@@ -837,27 +1052,23 @@ function animate(){
 
   driveT += dt * 0.9;
 
-  // car path
-  car.position.x = Math.sin(driveT * 0.6) * 2.6;
-  car.position.z = 0;
-  car.position.y = 0.05 + Math.sin(driveT * 2.4) * 0.025;
-  car.rotation.y = -Math.sin(driveT * 0.6) * 0.22;
-  wheels.forEach(w => { w.spinGroup.rotation.x -= 0.3; });
+  if (mode === "cinematic") updatePhysics(dt, driveT);
 
-  // environment motion
-  gridMat.uniforms.time.value = driveT;
+  // environment motion — scroll speed now tracks the physics speed, not a flat rate
+  gridMat.uniforms.time.value += dt * (0.4 + speed * 1.6);
   gradePass.uniforms.time.value += dt;
   particles.rotation.y += dt * 0.01;
-  const pos = pGeo.attributes.position;
+  const pPosAttr = pGeo.attributes.position;
+  const envSpeed = 4 + speed * 14;
   for (let i=0; i<PARTICLE_COUNT; i++){
-    let z = pos.getZ(i) + dt * 6;
+    let z = pPosAttr.getZ(i) + dt * envSpeed;
     if (z > 30) z = -130;
-    pos.setZ(i, z);
+    pPosAttr.setZ(i, z);
   }
-  pos.needsUpdate = true;
+  pPosAttr.needsUpdate = true;
 
   beams.forEach(b => {
-    b.position.z += dt * b.userData.speed;
+    b.position.z += dt * (b.userData.speed + speed * 10);
     if (b.position.z > 20) b.position.z = -110;
   });
 
@@ -872,17 +1083,15 @@ function animate(){
   cyanPulse.position.set(6 + Math.sin(driveT)*3, 6 + Math.cos(driveT*0.7)*2, car.position.z + 6);
   magentaPulse.position.set(-6 + Math.cos(driveT*0.8)*3, 4 + Math.sin(driveT*1.1)*2, car.position.z + 4);
 
-  // camera direction
   if (mode === "intro"){
     updateIntroCamera(dt);
   } else {
     updateCinematicCamera(dt, driveT);
-    // HUD telemetry
-    const speed = 180 + Math.sin(driveT*0.5) * 60;
-    speedNum.textContent = Math.round(Math.abs(speed)).toString().padStart(3,"0");
-    const pwr = 60 + Math.sin(driveT*0.4)*35;
-    pwrNum.textContent = Math.round(Math.abs(pwr));
-    pwrBar.style.width = Math.abs(pwr) + "%";
+    const speedKmh = speed * 320;
+    speedNum.textContent = Math.round(speedKmh).toString().padStart(3,"0");
+    const pwr = clamp(speed*70 + Math.abs(forwardAccel)*120, 0, 100);
+    pwrNum.textContent = Math.round(pwr);
+    pwrBar.style.width = pwr + "%";
   }
 
   composer.render();
