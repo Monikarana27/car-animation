@@ -112,6 +112,28 @@
     opacity: 0.55;
   }
 
+  #muteButton {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #00f7ff;
+    background: transparent;
+    border: 1px solid rgba(0, 247, 255, 0.4);
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  #muteButton:hover {
+    border-color: rgba(0, 247, 255, 0.9);
+    background: rgba(0, 247, 255, 0.08);
+  }
+
   /* ---------- GAME OVER OVERLAY ---------- */
   #gameOverOverlay {
     position: fixed;
@@ -234,7 +256,9 @@
       </div>
     </div>
 
-    <div class="hint">◀ / A &nbsp;&nbsp; D / ▶ — SWITCH LANES</div>
+    <button id="muteButton">🔊 SOUND ON</button>
+
+    <div class="hint">◀ / A &nbsp;&nbsp; D / ▶ &nbsp;— SWITCH LANES &nbsp;·&nbsp; SWIPE ON MOBILE</div>
   </div>
 
   <!-- ============================================================
@@ -773,6 +797,7 @@ function updateObstacles(dt, currentSpeed){
     if (!obstacle.userData.hasBeenPassed && obstacle.position.z > CONFIG.carZ + CONFIG.collisionZWindow){
       obstacle.userData.hasBeenPassed = true;
       gameState.score += CONFIG.pointsPerObstaclePassed;
+      playPassBlip();
     }
 
     if (obstacle.position.z > CONFIG.despawnZ){
@@ -788,21 +813,179 @@ function clearAllObstacles(){
 }
 
 /* ================================================================================
-   SECTION 8 — INPUT HANDLING
+   SECTION 7B — AUDIO
+   All sound is generated procedurally with the Web Audio API (no external
+   audio files, keeping this a single self-contained HTML file). This covers:
+     - a continuous synth "engine hum" whose pitch/volume track current speed
+     - a short blip on every lane change
+     - a soft tick when an obstacle is safely passed
+     - a noise-burst "crash" sound on collision
+   Audio only ever starts after a user gesture (Start/Restart button), which
+   satisfies browser autoplay restrictions on both desktop and mobile.
    ================================================================================ */
-function handleLaneInput(event){
+let audioContext = null;
+let soundEnabled = true;
+
+let engineOscillator = null;
+let engineFilter = null;
+let engineGain = null;
+
+function initAudio(){
+  if (audioContext) {
+    if (audioContext.state === "suspended") audioContext.resume();
+    return;
+  }
+
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+  // persistent engine hum: a sawtooth run through a lowpass filter reads as a
+  // synthetic "hacker car" engine rather than a literal combustion sound
+  engineOscillator = audioContext.createOscillator();
+  engineOscillator.type = "sawtooth";
+  engineOscillator.frequency.value = 60;
+
+  engineFilter = audioContext.createBiquadFilter();
+  engineFilter.type = "lowpass";
+  engineFilter.frequency.value = 400;
+
+  engineGain = audioContext.createGain();
+  engineGain.gain.value = 0; // silent until the run actually starts
+
+  engineOscillator.connect(engineFilter);
+  engineFilter.connect(engineGain);
+  engineGain.connect(audioContext.destination);
+  engineOscillator.start();
+}
+
+// called every frame while the game is running to keep the hum "alive"
+function updateEngineHum(currentSpeed, isRunning){
+  if (!audioContext || !engineGain || !engineOscillator) return;
+
+  const targetGain = (isRunning && soundEnabled) ? 0.05 : 0;
+  const speedFraction = clamp((currentSpeed - CONFIG.baseSpeed) / (CONFIG.maxSpeed - CONFIG.baseSpeed), 0, 1);
+  const targetFrequency = 55 + speedFraction * 140;
+
+  const now = audioContext.currentTime;
+  engineGain.gain.setTargetAtTime(targetGain, now, 0.15);
+  engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.1);
+  engineFilter.frequency.setTargetAtTime(300 + speedFraction * 900, now, 0.1);
+}
+
+function playLaneSwitchBlip(){
+  if (!audioContext || !soundEnabled) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  oscillator.type = "square";
+  oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(360, audioContext.currentTime + 0.09);
+
+  gain.gain.setValueAtTime(0.06, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.12);
+}
+
+function playPassBlip(){
+  if (!audioContext || !soundEnabled) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(1100, audioContext.currentTime);
+
+  gain.gain.setValueAtTime(0.035, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+function playCrashSound(){
+  if (!audioContext || !soundEnabled) return;
+
+  // short burst of white noise for the "impact", plus a falling tone underneath
+  const bufferSize = audioContext.sampleRate * 0.35;
+  const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const channelData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) channelData[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+
+  const noiseSource = audioContext.createBufferSource();
+  noiseSource.buffer = noiseBuffer;
+
+  const noiseGain = audioContext.createGain();
+  noiseGain.gain.setValueAtTime(0.25, audioContext.currentTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+
+  noiseSource.connect(noiseGain);
+  noiseGain.connect(audioContext.destination);
+  noiseSource.start();
+
+  const thud = audioContext.createOscillator();
+  const thudGain = audioContext.createGain();
+  thud.type = "square";
+  thud.frequency.setValueAtTime(140, audioContext.currentTime);
+  thud.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
+  thudGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35);
+  thud.connect(thudGain);
+  thudGain.connect(audioContext.destination);
+  thud.start();
+  thud.stop(audioContext.currentTime + 0.35);
+}
+
+/* ================================================================================
+   SECTION 8 — INPUT HANDLING (keyboard + touch swipe)
+   ================================================================================ */
+
+// shared lane-change logic used by both keyboard and swipe input
+function changeLane(direction){
   if (!gameState.isRunning) return;
 
-  if (event.code === "ArrowLeft" || event.code === "KeyA"){
-    gameState.currentLane = Math.max(0, gameState.currentLane - 1);
-    gameState.targetCarX = laneCenterX(gameState.currentLane);
-  }
-  if (event.code === "ArrowRight" || event.code === "KeyD"){
-    gameState.currentLane = Math.min(CONFIG.laneCount - 1, gameState.currentLane + 1);
-    gameState.targetCarX = laneCenterX(gameState.currentLane);
-  }
+  const nextLane = clamp(gameState.currentLane + direction, 0, CONFIG.laneCount - 1);
+  if (nextLane === gameState.currentLane) return; // already at the edge lane, nothing to do
+
+  gameState.currentLane = nextLane;
+  gameState.targetCarX = laneCenterX(gameState.currentLane);
+  playLaneSwitchBlip();
 }
-window.addEventListener("keydown", handleLaneInput);
+
+function handleLaneKeydown(event){
+  if (event.code === "ArrowLeft" || event.code === "KeyA") changeLane(-1);
+  if (event.code === "ArrowRight" || event.code === "KeyD") changeLane(1);
+}
+window.addEventListener("keydown", handleLaneKeydown);
+
+// --- touch swipe support (mobile) ---
+// tracked on the canvas itself so on-screen buttons (start/restart) are unaffected
+const swipeState = { startX: 0, startY: 0, active: false };
+const SWIPE_MIN_DISTANCE = 40; // px — how far a touch must travel horizontally to count as a swipe
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  const touch = event.changedTouches[0];
+  swipeState.startX = touch.clientX;
+  swipeState.startY = touch.clientY;
+  swipeState.active = true;
+}, { passive: true });
+
+renderer.domElement.addEventListener("touchend", (event) => {
+  if (!swipeState.active) return;
+  swipeState.active = false;
+
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - swipeState.startX;
+  const deltaY = touch.clientY - swipeState.startY;
+
+  // require a mostly-horizontal gesture so vertical scrolling/tapping isn't misread
+  if (Math.abs(deltaX) > SWIPE_MIN_DISTANCE && Math.abs(deltaX) > Math.abs(deltaY)){
+    changeLane(deltaX > 0 ? 1 : -1);
+  }
+}, { passive: true });
 
 /* ================================================================================
    SECTION 9 — GAME STATE
@@ -859,6 +1042,12 @@ const statusLine = document.getElementById("statusLine");
 const speedBarFill = document.getElementById("speedBarFill");
 const finalScoreText = document.getElementById("finalScoreText");
 const finalBestText = document.getElementById("finalBestText");
+const muteButton = document.getElementById("muteButton");
+
+muteButton.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  muteButton.textContent = soundEnabled ? "🔊 SOUND ON" : "🔇 SOUND OFF";
+});
 
 function refreshHud(){
   scoreText.textContent = `SCORE: ${Math.floor(gameState.score)}`;
@@ -876,6 +1065,8 @@ function refreshHud(){
    SECTION 12 — GAME FLOW (start / game over / restart)
    ================================================================================ */
 function startGame(){
+  initAudio(); // must happen inside a user-gesture handler (this click) to satisfy autoplay policy
+
   startOverlay.style.display = "none";
   gameOverOverlay.style.display = "none";
 
@@ -897,6 +1088,7 @@ function startGame(){
 function triggerGameOver(){
   gameState.isRunning = false;
   gameState.bestScore = Math.max(gameState.bestScore, gameState.score);
+  playCrashSound();
 
   finalScoreText.textContent = `FINAL SCORE: ${Math.floor(gameState.score)}`;
   finalBestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
@@ -963,6 +1155,7 @@ function animate(){
     refreshHud();
   }
 
+  updateEngineHum(gameState.currentSpeed, gameState.isRunning);
   renderer.render(scene, camera);
 }
 animate();
