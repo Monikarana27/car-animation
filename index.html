@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NEON RUNNER</title>
 <style>
-  /* ============================================================
-     BASE PAGE / HUD STYLING
-     ============================================================ */
   html, body {
     margin: 0;
     width: 100%;
@@ -19,7 +16,7 @@
 
   canvas { display: block; }
 
-  /* ---------- HUD (top-left system label, top-right score) ---------- */
+  /* ---------- HUD ---------- */
   #hud {
     position: fixed;
     inset: 0;
@@ -54,10 +51,7 @@
     text-shadow: 0 0 6px rgba(0, 247, 255, 0.8);
   }
 
-  #hud .topRight .scoreValue {
-    font-size: 20px;
-    letter-spacing: 2px;
-  }
+  #hud .topRight .scoreValue { font-size: 20px; letter-spacing: 2px; }
 
   #hud .topRight .bestValue {
     display: block;
@@ -68,32 +62,50 @@
     text-shadow: 0 0 6px rgba(255, 176, 0, 0.5);
   }
 
-  #hud .speedBarWrap {
-    position: absolute;
-    bottom: 46px;
-    left: 20px;
-    width: 140px;
+  #hud .topRight .streakValue {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(255, 43, 214, 0.85);
+    text-shadow: 0 0 6px rgba(255, 43, 214, 0.5);
   }
 
-  #hud .speedBarLabel {
+  #hud .topRight .rushValue {
+    display: none;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #ff2b4d;
+    text-shadow: 0 0 8px rgba(255, 43, 77, 0.9);
+  }
+
+  #hud .barsWrap {
+    position: absolute;
+    bottom: 40px;
+    left: 20px;
+    width: 160px;
+  }
+
+  #hud .barLabel {
     color: rgba(0, 247, 255, 0.6);
     font-size: 9px;
     letter-spacing: 2px;
     margin-bottom: 4px;
   }
 
-  #hud .speedBarTrack {
+  #hud .barTrack {
     width: 100%;
     height: 4px;
     background: rgba(0, 247, 255, 0.12);
     position: relative;
     overflow: hidden;
+    margin-bottom: 14px;
   }
 
-  #hud .speedBarFill {
+  #hud .barFill {
     position: absolute;
-    left: 0;
-    top: 0;
+    left: 0; top: 0;
     height: 100%;
     width: 0%;
     background: #00f7ff;
@@ -101,15 +113,22 @@
     transition: width 0.15s linear;
   }
 
+  #hud .barFill.progressFill {
+    background: #ffb000;
+    box-shadow: 0 0 8px #ffb000;
+  }
+
   #hud .hint {
     position: absolute;
-    bottom: 18px;
+    bottom: 14px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 11px;
     letter-spacing: 2px;
     color: #00f7ff;
     opacity: 0.55;
+    text-align: center;
+    width: 90%;
   }
 
   #muteButton {
@@ -134,26 +153,56 @@
     background: rgba(0, 247, 255, 0.08);
   }
 
-  /* ---------- GAME OVER OVERLAY ---------- */
-  #gameOverOverlay {
+  /* ---------- shared overlay base ---------- */
+  .overlay {
     position: fixed;
     inset: 0;
-    display: none; /* toggled to flex on collision */
+    display: none;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.84);
     font-family: 'Courier New', monospace;
     text-align: center;
   }
 
-  #gameOverOverlay h1 {
-    margin: 0 0 10px;
-    font-size: 32px;
+  #startOverlay { display: flex; background: rgba(0, 0, 0, 0.75); }
+  #gameOverOverlay { background: rgba(0, 0, 0, 0.84); }
+  #levelTransitionOverlay { background: rgba(0, 0, 0, 0.72); }
+
+  #startOverlay h1, #gameOverOverlay h1, #levelTransitionOverlay h1 {
+    margin: 0 0 14px;
+    font-size: 28px;
     letter-spacing: 6px;
-    color: #ff2b6f;
-    text-shadow: 0 0 10px rgba(255, 43, 111, 0.8);
+    text-shadow: 0 0 10px currentColor;
   }
+
+  #startOverlay h1 { color: #00f7ff; }
+  #gameOverOverlay h1 { color: #ff2b6f; font-size: 32px; }
+  #levelTransitionOverlay h1 { color: #ffb000; }
+
+  #startOverlay p {
+    margin: 0 0 26px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(157, 248, 255, 0.7);
+    max-width: 80%;
+  }
+
+  .overlayButton {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 3px;
+    background: transparent;
+    padding: 12px 30px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  #startButton { color: #ffb000; border: 1px solid #ffb000; }
+  #startButton:hover { background: #ffb000; color: #000; }
+
+  #restartButton { color: #00f7ff; border: 1px solid #00f7ff; }
+  #restartButton:hover { background: #00f7ff; color: #000; }
 
   #gameOverOverlay .scoreLine {
     margin: 4px 0;
@@ -163,121 +212,91 @@
     text-shadow: 0 0 6px rgba(0, 247, 255, 0.6);
   }
 
+  #gameOverOverlay .levelLine {
+    margin: 0 0 4px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(0, 247, 255, 0.75);
+  }
+
   #gameOverOverlay .bestLine {
-    margin: 0 0 24px;
+    margin: 0 0 6px;
     font-size: 11px;
     letter-spacing: 2px;
     color: rgba(255, 176, 0, 0.85);
   }
 
-  #restartButton {
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
+  #gameOverOverlay .newBestLine {
+    margin: 0 0 24px;
+    font-size: 11px;
     letter-spacing: 3px;
     color: #00f7ff;
-    background: transparent;
-    border: 1px solid #00f7ff;
-    padding: 12px 30px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    text-shadow: 0 0 8px rgba(0, 247, 255, 0.7);
+    display: none;
   }
 
-  #restartButton:hover {
-    background: #00f7ff;
-    color: #000;
+  #levelTransitionOverlay .bonusLine {
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #ff2bd6;
+    text-shadow: 0 0 8px rgba(255, 43, 214, 0.7);
   }
 
-  /* ---------- START OVERLAY (shown before the first run) ---------- */
-  #startOverlay {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    background: rgba(0, 0, 0, 0.75);
-    font-family: 'Courier New', monospace;
-    text-align: center;
-  }
-
-  #startOverlay h1 {
-    margin: 0 0 14px;
-    font-size: 28px;
-    letter-spacing: 6px;
-    color: #00f7ff;
-    text-shadow: 0 0 10px rgba(0, 247, 255, 0.8);
-  }
-
-  #startOverlay p {
-    margin: 0 0 26px;
+  #levelTransitionOverlay .nextLine {
+    margin: 0;
     font-size: 12px;
     letter-spacing: 2px;
-    color: rgba(157, 248, 255, 0.7);
-  }
-
-  #startButton {
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    letter-spacing: 3px;
-    color: #ffb000;
-    background: transparent;
-    border: 1px solid #ffb000;
-    padding: 12px 30px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-
-  #startButton:hover {
-    background: #ffb000;
-    color: #000;
+    color: rgba(157, 248, 255, 0.8);
   }
 </style>
 </head>
 <body>
 
-  <!-- ============================================================
-       HUD MARKUP
-       ============================================================ -->
   <div id="hud">
     <div class="topLeft">
-      NEON RUNNER // SYSTEM ACTIVE
+      <span id="levelLabel">NEON RUNNER // LEVEL 1</span>
       <span class="subLine" id="statusLine">LANE 2 / 3 — HOLD THE LINE</span>
     </div>
 
     <div class="topRight">
       <span class="scoreValue" id="scoreText">SCORE: 0</span>
       <span class="bestValue" id="bestText">BEST: 0</span>
+      <span class="streakValue" id="streakText">STREAK: 0</span>
+      <span class="rushValue" id="rushText">🔥 NEON RUSH x2</span>
     </div>
 
-    <div class="speedBarWrap">
-      <div class="speedBarLabel">VELOCITY</div>
-      <div class="speedBarTrack">
-        <div class="speedBarFill" id="speedBarFill"></div>
-      </div>
+    <div class="barsWrap">
+      <div class="barLabel">VELOCITY</div>
+      <div class="barTrack"><div class="barFill" id="speedBarFill"></div></div>
+      <div class="barLabel">LEVEL PROGRESS</div>
+      <div class="barTrack"><div class="barFill progressFill" id="progressBarFill"></div></div>
     </div>
 
     <button id="muteButton">🔊 SOUND ON</button>
 
-    <div class="hint">◀ / A &nbsp;&nbsp; D / ▶ &nbsp;— SWITCH LANES &nbsp;·&nbsp; SWIPE ON MOBILE</div>
+    <div class="hint">◀ / A &nbsp;&nbsp; D / ▶ &nbsp;— SWITCH LANES &nbsp;·&nbsp; TAP OR SWIPE EITHER SIDE ON MOBILE</div>
   </div>
 
-  <!-- ============================================================
-       START OVERLAY
-       ============================================================ -->
-  <div id="startOverlay">
+  <div id="startOverlay" class="overlay">
     <h1>NEON RUNNER</h1>
-    <p>ARROW KEYS OR A / D TO CHANGE LANES · SURVIVE THE GRID</p>
-    <button id="startButton">START ENGINE</button>
+    <p>ARROW KEYS OR A / D TO CHANGE LANES · TAP / SWIPE ON MOBILE<br>CLEAR EACH LEVEL'S TARGET SCORE TO ADVANCE THE GRID</p>
+    <button id="startButton" class="overlayButton">TAP / CLICK TO START</button>
   </div>
 
-  <!-- ============================================================
-       GAME OVER OVERLAY
-       ============================================================ -->
-  <div id="gameOverOverlay">
-    <h1>SYSTEM FAILURE</h1>
+  <div id="levelTransitionOverlay" class="overlay">
+    <h1 id="levelCompleteTitle">LEVEL 1 COMPLETE</h1>
+    <p class="bonusLine" id="levelBonusLine">STREAK BONUS +0</p>
+    <p class="nextLine" id="levelNextLine">ENTERING LEVEL 2</p>
+  </div>
+
+  <div id="gameOverOverlay" class="overlay">
+    <h1>CRASHED</h1>
     <p class="scoreLine" id="finalScoreText">FINAL SCORE: 0</p>
+    <p class="levelLine" id="finalLevelText">REACHED LEVEL 1</p>
     <p class="bestLine" id="finalBestText">BEST: 0</p>
-    <button id="restartButton">RESTART</button>
+    <p class="newBestLine" id="newBestLine">// NEW BEST SCORE //</p>
+    <button id="restartButton" class="overlayButton">RESTART</button>
   </div>
 
 <script type="importmap">
@@ -293,42 +312,60 @@ import * as THREE from "three";
 
 /* ================================================================================
    SECTION 1 — CONFIG
-   Every tunable number for the game lives here. Change these to reshape the
-   feel of the run without touching logic anywhere else in the file.
    ================================================================================ */
 const CONFIG = {
+  laneCount: 3,
+  laneWidth: 2.6,
+  laneSwitchSharpness: 10,
 
-  // --- lanes ---
-  laneCount: 3,             // left / center / right
-  laneWidth: 2.6,           // distance between lane centers, in world units
-  laneSwitchSharpness: 10,  // higher = snappier lane changes (exponential damping rate)
+  baseSpeed: 15,
+  maxSpeed: 46,
+  absoluteMaxSpeed: 72,
+  speedGainPerPoint: 0.05,
 
-  // --- difficulty & pacing (both keyed off score, not just elapsed time) ---
-  baseSpeed: 15,            // obstacle speed at score 0 (units/sec)
-  maxSpeed: 46,             // hard cap on obstacle speed
-  speedGainPerPoint: 0.06,  // how much speed is added per score point earned
+  spawnIntervalStart: 1.05,
+  spawnIntervalMin: 0.4,
+  spawnIntervalDecayPerPoint: 0.008,
 
-  spawnIntervalStart: 1.05, // seconds between spawns at score 0
-  spawnIntervalMin: 0.42,   // fastest the spawner is allowed to fire
-  spawnIntervalDecayPerPoint: 0.01, // how much faster spawning gets per point
+  pointsPerObstaclePassed: 10,
+  comboBonusPerStreak: 2,
+  comboStreakCap: 25,
 
-  pointsPerObstaclePassed: 10, // score awarded each time an obstacle is safely passed
+  spawnZ: -75,
+  despawnZ: 9,
+  carZ: 0,
+  collisionZWindow: 1.15,
+  collisionLaneFraction: 0.85,
 
-  // --- world geometry ---
-  spawnZ: -75,              // where obstacles are born, far down the road
-  despawnZ: 9,              // where passed obstacles are cleaned up (behind the camera)
-  carZ: 0,                  // the car's fixed Z position (world scrolls past it)
-  collisionZWindow: 1.15,   // how close (in Z) an obstacle must get to the car to be a hit
-  collisionLaneFraction: 0.85, // how much lane-overlap counts as "same lane" for a hit
-
-  // --- car motion / life ---
-  idleBobAmplitude: 0.012,     // subtle vertical vibration amplitude at speed
-  idleBobFrequencyBase: 10,    // vibration frequency floor
+  idleBobAmplitude: 0.012,
+  idleBobFrequencyBase: 10,
   idleBobFrequencyPerSpeed: 0.35,
-  bodyLeanAmount: 0.22,        // how far the car visually leans into a lane change
-  wheelSpinPerSpeed: 0.42,     // wheel rotation speed scaled by obstacle speed
+  bodyLeanAmount: 0.22,
+  wheelSpinPerSpeed: 0.42,
 
-  // --- palette (kept centralized so the whole scene reads as one neon system) ---
+  pylonSpeedFactor: 1.0,
+  pylonSpanLength: 208,
+  skylineSpeedFactor: 0.32,
+  skylineSpanLength: 480,
+  gridScrollSpeedFactor: 0.05,
+
+  // --- level progression ---
+  levelBaseTarget: 150,
+  levelTargetGrowth: 130,
+  levelSpeedGrowthPerLevel: 0.12,
+  levelSpawnIntervalDecayPerLevel: 0.05,
+  levelSpawnIntervalFloor: 0.55,
+  levelBarrierChanceBase: 0.28,
+  levelBarrierChanceGrowth: 0.02,
+  levelBarrierChanceMax: 0.6,
+  levelTransitionDuration: 2.6,
+  levelBonusPerStreak: 15,
+
+  // --- neon rush hook (streak-triggered burst that accelerates progression) ---
+  rushStreakThreshold: 8,
+  rushMultiplier: 2,
+  rushDuration: 6,
+
   colors: {
     cyan: 0x00f7ff,
     magenta: 0xff2bd6,
@@ -339,11 +376,39 @@ const CONFIG = {
   }
 };
 
+// each level cycles through this theme list, with difficulty compounding on top
+const THEMES = [
+  { name: "CYAN GRID",     primary: 0x00f7ff, secondary: 0xff2bd6, accent: 0xffb000, fog: 0x000000 },
+  { name: "AMBER CIRCUIT", primary: 0xffb000, secondary: 0x00f7ff, accent: 0xff2bd6, fog: 0x050300 },
+  { name: "MAGENTA DRIFT", primary: 0xff2bd6, secondary: 0xffb000, accent: 0x00f7ff, fog: 0x050005 },
+  { name: "CRIMSON ALERT", primary: 0xff2b4d, secondary: 0xff8800, accent: 0x00f7ff, fog: 0x0a0000 },
+  { name: "MATRIX GREEN",  primary: 0x00ff88, secondary: 0x00f7ff, accent: 0xffffff, fog: 0x000500 },
+  { name: "VOID PURPLE",   primary: 0x8f2bff, secondary: 0x00f7ff, accent: 0xff2bd6, fog: 0x03000a }
+];
+
+// deterministic level configuration generator — every level changes at least
+// speed, spawn interval, obstacle mix (barrier chance), and visual theme.
+function getLevelConfig(levelNumber){
+  const step = levelNumber - 1;
+  const theme = THEMES[step % THEMES.length];
+  return {
+    level: levelNumber,
+    theme,
+    targetScore: CONFIG.levelBaseTarget + step * CONFIG.levelTargetGrowth,
+    speedMultiplier: 1 + step * CONFIG.levelSpeedGrowthPerLevel,
+    spawnIntervalMultiplier: Math.max(
+      CONFIG.levelSpawnIntervalFloor,
+      1 - step * CONFIG.levelSpawnIntervalDecayPerLevel
+    ),
+    barrierChance: Math.min(
+      CONFIG.levelBarrierChanceMax,
+      CONFIG.levelBarrierChanceBase + step * CONFIG.levelBarrierChanceGrowth
+    )
+  };
+}
+
 /* ================================================================================
    SECTION 2 — SCENE / CAMERA / RENDERER SETUP
-   Deliberately no post-processing (no bloom composer). Colors stay flat and
-   crisp — emissive materials read as "neon" without any pass spreading light
-   across neighboring geometry.
    ================================================================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
@@ -356,15 +421,16 @@ camera.lookAt(0, 1, -12);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.toneMapping = THREE.NoToneMapping;       // keeps colors flat, no ACES glow-wash
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
 /* ================================================================================
    SECTION 3 — LIGHTING
-   Just enough light to read the car's shape. No point lights are strong
-   enough to overexpose or "bleed" into neighboring surfaces.
+   rimCyan/rimMagenta are kept as module-level references so level themes can
+   retint them (lighting tint shift per level) without touching the car itself.
    ================================================================================ */
+let rimCyan, rimMagenta;
 function setupLighting(){
   scene.add(new THREE.AmbientLight(0x223344, 0.65));
 
@@ -372,11 +438,11 @@ function setupLighting(){
   keyLight.position.set(3, 8, 5);
   scene.add(keyLight);
 
-  const rimCyan = new THREE.PointLight(CONFIG.colors.cyan, 3.5, 12);
+  rimCyan = new THREE.PointLight(CONFIG.colors.cyan, 3.5, 12);
   rimCyan.position.set(-2.2, 2.2, 2.2);
   scene.add(rimCyan);
 
-  const rimMagenta = new THREE.PointLight(CONFIG.colors.magenta, 2.8, 12);
+  rimMagenta = new THREE.PointLight(CONFIG.colors.magenta, 2.8, 12);
   rimMagenta.position.set(2.2, 2.0, -2.2);
   scene.add(rimMagenta);
 }
@@ -384,8 +450,6 @@ setupLighting();
 
 /* ================================================================================
    SECTION 4 — SHARED MATERIALS & HELPERS
-   Centralizing materials avoids accidental duplicates and keeps the palette
-   consistent across the car, road, and obstacles.
    ================================================================================ */
 const materials = {
   bodyPaint: new THREE.MeshStandardMaterial({
@@ -412,8 +476,6 @@ const materials = {
   })
 };
 
-// crisp black edge outline for any mesh — gives the "hacker HUD" line-art look
-// and keeps silhouettes sharp even without antialiasing-heavy post effects.
 const edgeOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
 function withEdges(mesh, thresholdAngle = 18){
   const edgeGeometry = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
@@ -422,16 +484,12 @@ function withEdges(mesh, thresholdAngle = 18){
   return mesh;
 }
 
-// frame-rate independent smoothing (exponential damp) — used for lane changes
-// and any value that should ease rather than snap or move linearly.
 function damp(current, target, lambda, dt){
   return current + (target - current) * (1 - Math.exp(-lambda * dt));
 }
 function clamp(value, min, max){
   return Math.max(min, Math.min(max, value));
 }
-
-// maps a lane index (0..laneCount-1) to a world-space X position, centered on 0
 function laneCenterX(laneIndex){
   const middleIndex = (CONFIG.laneCount - 1) / 2;
   return (laneIndex - middleIndex) * CONFIG.laneWidth;
@@ -439,86 +497,60 @@ function laneCenterX(laneIndex){
 
 /* ================================================================================
    SECTION 5 — CAR CONSTRUCTION
-   Split into small, named functions so each body part can be tweaked in
-   isolation. assembleCar() wires everything into one group and returns
-   references the game loop needs (wheels to spin, body to lean/bob).
+   (Body/aero/glass/spoiler/lights/wheels — identity kept fixed across levels;
+   only the environment around the car is retheme-able.)
    ================================================================================ */
-
-// main volume: chassis, hood, tapered nose, cabin, rear deck
 function createCarBody(){
   const bodyGroup = new THREE.Group();
 
-  const chassis = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.7, 0.32, 3.6), materials.bodyPaint
-  ));
+  const chassis = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.32, 3.6), materials.bodyPaint));
   chassis.position.y = 0.42;
   bodyGroup.add(chassis);
 
-  // sloped hood — an angled box instead of a flat one avoids a "blocky" front end
-  const hood = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.55, 0.22, 1.1), materials.bodyPaint
-  ));
+  const hood = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.22, 1.1), materials.bodyPaint));
   hood.position.set(0, 0.58, 1.35);
   hood.rotation.x = 0.12;
   bodyGroup.add(hood);
 
-  // tapered nose — a flattened, rotated cone reads as a pointed sports-car front
-  const nose = withEdges(new THREE.Mesh(
-    new THREE.ConeGeometry(0.85, 0.9, 4), materials.bodyPaint
-  ));
+  const nose = withEdges(new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.9, 4), materials.bodyPaint));
   nose.rotation.x = Math.PI / 2;
   nose.rotation.y = Math.PI / 4;
   nose.scale.set(1, 1, 0.5);
   nose.position.set(0, 0.44, 2.05);
   bodyGroup.add(nose);
 
-  // cabin, swept back slightly for a "wedge" profile
-  const cabin = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.25, 0.4, 1.5), materials.bodyPaint
-  ));
+  const cabin = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.4, 1.5), materials.bodyPaint));
   cabin.position.set(0, 0.78, -0.25);
   cabin.rotation.x = -0.05;
   bodyGroup.add(cabin);
 
-  // roof spine — a thin raised ridge, a classic hero-car detail line
-  const roofSpine = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(0.9, 0.05, 1.2), materials.carbonTrim
-  ));
+  const roofSpine = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 1.2), materials.carbonTrim));
   roofSpine.position.set(0, 0.995, -0.25);
   bodyGroup.add(roofSpine);
 
-  const rearDeck = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 0.3, 0.9), materials.bodyPaint
-  ));
+  const rearDeck = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.9), materials.bodyPaint));
   rearDeck.position.set(0, 0.6, -1.55);
   bodyGroup.add(rearDeck);
 
   return bodyGroup;
 }
 
-// aero details: splitter, canards, side skirts — non-glowing, purely geometric
 function createAeroDetails(){
   const aeroGroup = new THREE.Group();
 
-  const frontSplitter = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.35, 0.05, 0.35), materials.carbonTrim
-  ));
+  const frontSplitter = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.05, 0.35), materials.carbonTrim));
   frontSplitter.position.set(0, 0.28, 2.4);
   aeroGroup.add(frontSplitter);
 
   [0.55, -0.55].forEach(xSide => {
-    const canard = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, 0.03, 0.16), materials.carbonTrim
-    ));
+    const canard = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.03, 0.16), materials.carbonTrim));
     canard.position.set(xSide, 0.42, 2.15);
     canard.rotation.z = xSide > 0 ? 0.15 : -0.15;
     aeroGroup.add(canard);
   });
 
   [0.87, -0.87].forEach(xSide => {
-    const sideSkirt = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.08, 2.6), materials.carbonTrim
-    ));
+    const sideSkirt = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 2.6), materials.carbonTrim));
     sideSkirt.position.set(xSide, 0.32, 0);
     aeroGroup.add(sideSkirt);
   });
@@ -526,35 +558,26 @@ function createAeroDetails(){
   return aeroGroup;
 }
 
-// windshield + door glass + mirrors
 function createGlassAndMirrors(){
   const glassGroup = new THREE.Group();
 
-  const windshield = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.1, 0.35, 0.06), materials.glass
-  ));
+  const windshield = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.06), materials.glass));
   windshield.position.set(0, 0.92, 0.5);
   windshield.rotation.x = -0.55;
   glassGroup.add(windshield);
 
-  const rearGlass = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.15, 0.3, 0.06), materials.glass
-  ));
+  const rearGlass = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.3, 0.06), materials.glass));
   rearGlass.position.set(0, 0.88, -0.95);
   rearGlass.rotation.x = 0.5;
   glassGroup.add(rearGlass);
 
   [0.72, -0.72].forEach(xSide => {
-    const mirrorStalk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6), materials.darkTrim
-    );
+    const mirrorStalk = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.14, 6), materials.darkTrim);
     mirrorStalk.rotation.z = Math.PI / 2.5;
     mirrorStalk.position.set(xSide * 0.78, 0.78, 0.75);
     glassGroup.add(mirrorStalk);
 
-    const mirrorHousing = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.14, 0.08, 0.08), materials.bodyPaint
-    ));
+    const mirrorHousing = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.08), materials.bodyPaint));
     mirrorHousing.position.set(xSide * 0.88, 0.82, 0.75);
     glassGroup.add(mirrorHousing);
   });
@@ -562,20 +585,15 @@ function createGlassAndMirrors(){
   return glassGroup;
 }
 
-// spoiler + support struts
 function createSpoiler(){
   const spoilerGroup = new THREE.Group();
 
-  const wing = withEdges(new THREE.Mesh(
-    new THREE.BoxGeometry(1.4, 0.06, 0.35), materials.darkTrim
-  ));
+  const wing = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.06, 0.35), materials.darkTrim));
   wing.position.set(0, 0.95, -1.9);
   spoilerGroup.add(wing);
 
   [0.5, -0.5].forEach(xSide => {
-    const strut = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.28, 0.06), materials.darkTrim
-    );
+    const strut = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.06), materials.darkTrim);
     strut.position.set(xSide, 0.78, -1.9);
     spoilerGroup.add(strut);
   });
@@ -583,32 +601,23 @@ function createSpoiler(){
   return spoilerGroup;
 }
 
-// headlights, taillights, and their bezels
 function createLights(){
   const lightsGroup = new THREE.Group();
 
   [0.55, -0.55].forEach(xSide => {
-    const headlightBezel = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.26, 0.15, 0.07), materials.brushedSilver
-    ));
+    const headlightBezel = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.15, 0.07), materials.brushedSilver));
     headlightBezel.position.set(xSide, 0.48, 2.57);
     lightsGroup.add(headlightBezel);
 
-    const headlight = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, 0.12, 0.06), materials.headlightGlow
-    ));
+    const headlight = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.12, 0.06), materials.headlightGlow));
     headlight.position.set(xSide, 0.48, 2.59);
     lightsGroup.add(headlight);
 
-    const taillightBezel = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.15, 0.07), materials.brushedSilver
-    ));
+    const taillightBezel = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.15, 0.07), materials.brushedSilver));
     taillightBezel.position.set(xSide, 0.55, -2.02);
     lightsGroup.add(taillightBezel);
 
-    const taillight = withEdges(new THREE.Mesh(
-      new THREE.BoxGeometry(0.3, 0.12, 0.06), materials.taillightGlow
-    ));
+    const taillight = withEdges(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.06), materials.taillightGlow));
     taillight.position.set(xSide, 0.55, -2.0);
     lightsGroup.add(taillight);
   });
@@ -616,8 +625,6 @@ function createLights(){
   return lightsGroup;
 }
 
-// wheels — tyre, rim, brake disc, and a static caliper.
-// Returns the array of tyre meshes so the game loop can spin them.
 function createWheels(){
   const wheelsGroup = new THREE.Group();
   const spinningWheelMeshes = [];
@@ -646,17 +653,14 @@ function createWheels(){
     const disc = new THREE.Mesh(discGeometry, materials.discMetal);
     disc.rotation.z = Math.PI / 2;
     cornerGroup.add(disc);
-    spinningWheelMeshes.push(disc); // discs spin with the wheel too
+    spinningWheelMeshes.push(disc);
 
     const rim = new THREE.Mesh(rimGeometry, materials.headlightGlow);
     rim.rotation.z = Math.PI / 2;
     cornerGroup.add(rim);
     spinningWheelMeshes.push(rim);
 
-    // caliper stays fixed to the chassis, doesn't rotate with the wheel
-    const caliper = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.16, 0.18), materials.caliperGlow
-    );
+    const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.18), materials.caliperGlow);
     caliper.position.set(side * 0.16, 0, 0);
     cornerGroup.add(caliper);
   });
@@ -664,24 +668,18 @@ function createWheels(){
   return { wheelsGroup, spinningWheelMeshes };
 }
 
-// flat emissive plate under the chassis — reads as neon underglow.
-// It's a plain, crisp-edged color, not a bloom effect, so it never smears.
 function createUnderglow(){
   const underGlow = new THREE.Mesh(
     new THREE.PlaneGeometry(1.5, 3.2),
-    new THREE.MeshBasicMaterial({
-      color: CONFIG.colors.cyan, transparent: true, opacity: 0.35
-    })
+    new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.35 })
   );
   underGlow.rotation.x = -Math.PI / 2;
   underGlow.position.y = 0.06;
   return underGlow;
 }
 
-// assembles every part above into one drivable car object
 function assembleCar(){
   const carGroup = new THREE.Group();
-
   carGroup.add(createCarBody());
   carGroup.add(createAeroDetails());
   carGroup.add(createGlassAndMirrors());
@@ -700,41 +698,76 @@ scene.add(car);
 
 /* ================================================================================
    SECTION 6 — ROAD & ENVIRONMENT
+   Materials that change per-level theme are kept as module-level references
+   (roadSurfaceMaterial, laneDividerMaterials, pylonMaterial, skylineEdgeMaterial)
+   so applyLevelTheme() can retint them without rebuilding any geometry.
    ================================================================================ */
+function createRoadGridTexture(){
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#050507";
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.5);
+  ctx.lineTo(size, size * 0.5);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, size * 0.08);
+  ctx.lineTo(size, size * 0.08);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 44);
+  return texture;
+}
+
+const roadGridTexture = createRoadGridTexture();
+let roadSurfaceMaterial;
+const laneDividerMaterials = [];
+
 function createRoad(){
   const roadWidth = CONFIG.laneWidth * CONFIG.laneCount + 1.5;
 
-  const roadSurface = new THREE.Mesh(
-    new THREE.PlaneGeometry(roadWidth, 220),
-    new THREE.MeshStandardMaterial({ color: 0x050507, metalness: 0.4, roughness: 0.8 })
-  );
+  roadSurfaceMaterial = new THREE.MeshStandardMaterial({
+    map: roadGridTexture, color: CONFIG.colors.cyan, metalness: 0.4, roughness: 0.8
+  });
+  const roadSurface = new THREE.Mesh(new THREE.PlaneGeometry(roadWidth, 220), roadSurfaceMaterial);
   roadSurface.rotation.x = -Math.PI / 2;
   roadSurface.position.z = -70;
   scene.add(roadSurface);
 
-  // glowing lane divider lines, one at each lane boundary (laneCount + 1 lines total)
   for (let dividerIndex = 0; dividerIndex <= CONFIG.laneCount; dividerIndex++){
     const dividerX = (dividerIndex - CONFIG.laneCount / 2) * CONFIG.laneWidth;
-    const divider = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.05, 220),
-      new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.5 })
-    );
+    const dividerMaterial = new THREE.MeshBasicMaterial({
+      color: CONFIG.colors.cyan, transparent: true, opacity: 0.5
+    });
+    const divider = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 220), dividerMaterial);
     divider.rotation.x = -Math.PI / 2;
     divider.position.set(dividerX, 0.01, -70);
     scene.add(divider);
+    laneDividerMaterials.push(dividerMaterial);
   }
 
   return roadWidth;
 }
 const roadWidth = createRoad();
 
-// distant neon pylons along both edges of the road, purely for atmosphere —
-// static and cheap (no per-frame cost beyond the parallax scroll below).
+const roadsidePylons = [];
+let pylonMaterial;
 function createRoadsidePylons(){
-  const pylonGroup = new THREE.Group();
-  const pylonMaterial = new THREE.MeshBasicMaterial({
-    color: CONFIG.colors.magenta, transparent: true, opacity: 0.55
-  });
+  pylonMaterial = new THREE.MeshBasicMaterial({ color: CONFIG.colors.magenta, transparent: true, opacity: 0.55 });
   const pylonGeometry = new THREE.BoxGeometry(0.15, 3, 0.15);
 
   const sideOffset = roadWidth / 2 + 1.2;
@@ -742,12 +775,60 @@ function createRoadsidePylons(){
     [-1, 1].forEach(side => {
       const pylon = new THREE.Mesh(pylonGeometry, pylonMaterial);
       pylon.position.set(side * sideOffset, 1.5, -i * 8);
-      pylonGroup.add(pylon);
+      scene.add(pylon);
+      roadsidePylons.push(pylon);
     });
   }
-  scene.add(pylonGroup);
 }
 createRoadsidePylons();
+
+const skylineBuildings = [];
+let skylineEdgeMaterial;
+function createSkyline(){
+  const silhouetteMaterial = new THREE.MeshBasicMaterial({ color: 0x040608 });
+  skylineEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x0a3540 });
+
+  const sideOffset = roadWidth / 2 + 9;
+  for (let i = 0; i < 22; i++){
+    [-1, 1].forEach(side => {
+      const buildingHeight = 4 + Math.random() * 10;
+      const buildingWidth = 1.2 + Math.random() * 2.2;
+      const building = new THREE.Mesh(
+        new THREE.BoxGeometry(buildingWidth, buildingHeight, buildingWidth), silhouetteMaterial
+      );
+      building.position.set(
+        side * (sideOffset + Math.random() * 10),
+        buildingHeight / 2,
+        -i * 22 - Math.random() * 10
+      );
+
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(building.geometry, 25), skylineEdgeMaterial);
+      building.add(edges);
+
+      scene.add(building);
+      skylineBuildings.push(building);
+    });
+  }
+}
+createSkyline();
+
+// applies a level's visual theme to the environment only — the car's own
+// materials are left untouched so its identity stays consistent across levels.
+function applyLevelTheme(levelConfig){
+  const theme = levelConfig.theme;
+
+  scene.fog.color.setHex(theme.fog);
+  roadSurfaceMaterial.color.setHex(theme.primary);
+  laneDividerMaterials.forEach(material => material.color.setHex(theme.primary));
+  pylonMaterial.color.setHex(theme.secondary);
+  skylineEdgeMaterial.color.copy(new THREE.Color(theme.primary).multiplyScalar(0.35));
+
+  rimCyan.color.setHex(theme.primary);
+  rimMagenta.color.setHex(theme.secondary);
+
+  obstacleColorPalette.length = 0;
+  obstacleColorPalette.push(theme.primary, theme.secondary, theme.accent);
+}
 
 /* ================================================================================
    SECTION 7 — OBSTACLE SYSTEM
@@ -759,26 +840,18 @@ function spawnObstacle(){
   const laneIndex = Math.floor(Math.random() * CONFIG.laneCount);
   const emissiveColor = obstacleColorPalette[Math.floor(Math.random() * obstacleColorPalette.length)];
 
-  // occasionally spawn a low, wide "barrier" instead of a cube, for visual variety
-  const isBarrier = Math.random() < 0.3;
+  const barrierChance = gameState.currentLevelConfig ? gameState.currentLevelConfig.barrierChance : 0.3;
+  const isBarrier = Math.random() < barrierChance;
   const geometry = isBarrier
     ? new THREE.BoxGeometry(CONFIG.laneWidth * 0.8, 0.5, 0.4)
     : new THREE.BoxGeometry(1.1, 1.1, 1.1);
 
   const material = new THREE.MeshStandardMaterial({
-    color: 0x050505,
-    emissive: emissiveColor,
-    emissiveIntensity: 1.1,
-    metalness: 0.3,
-    roughness: 0.6
+    color: 0x050505, emissive: emissiveColor, emissiveIntensity: 1.1, metalness: 0.3, roughness: 0.6
   });
 
   const obstacle = withEdges(new THREE.Mesh(geometry, material));
-  obstacle.position.set(
-    laneCenterX(laneIndex),
-    isBarrier ? 0.28 : 0.58,
-    CONFIG.spawnZ
-  );
+  obstacle.position.set(laneCenterX(laneIndex), isBarrier ? 0.28 : 0.58, CONFIG.spawnZ);
   obstacle.userData.lane = laneIndex;
   obstacle.userData.hasBeenPassed = false;
 
@@ -786,18 +859,16 @@ function spawnObstacle(){
   activeObstacles.push(obstacle);
 }
 
-// advances every obstacle, awards score for ones just passed, and removes
-// ones that have scrolled safely behind the camera.
+// advances every obstacle, awards streak/rush-scaled score for ones just
+// passed, and removes ones that have scrolled safely behind the camera.
 function updateObstacles(dt, currentSpeed){
   for (let i = activeObstacles.length - 1; i >= 0; i--){
     const obstacle = activeObstacles[i];
     obstacle.position.z += dt * currentSpeed;
 
-    // award points the instant an un-collided obstacle crosses the car's Z
     if (!obstacle.userData.hasBeenPassed && obstacle.position.z > CONFIG.carZ + CONFIG.collisionZWindow){
       obstacle.userData.hasBeenPassed = true;
-      gameState.score += CONFIG.pointsPerObstaclePassed;
-      playPassBlip();
+      awardObstaclePass();
     }
 
     if (obstacle.position.z > CONFIG.despawnZ){
@@ -812,143 +883,228 @@ function clearAllObstacles(){
   activeObstacles.length = 0;
 }
 
+// scoring + the neon-rush hook: streak grows on every clean pass; hitting a
+// threshold multiple activates a temporary score multiplier, which directly
+// accelerates reaching the next level's target — the hook is tied into
+// progression, not just a visual flourish.
+function awardObstaclePass(){
+  gameState.streak += 1;
+  const streakLevel = Math.min(gameState.streak, CONFIG.comboStreakCap);
+  const basePoints = CONFIG.pointsPerObstaclePassed + streakLevel * CONFIG.comboBonusPerStreak;
+  gameState.score += basePoints * gameState.scoreMultiplier;
+  playPassBlip();
+
+  if (!gameState.rushActive && gameState.streak > 0 && gameState.streak % CONFIG.rushStreakThreshold === 0){
+    activateNeonRush();
+  }
+}
+
+function activateNeonRush(){
+  gameState.rushActive = true;
+  gameState.rushTimer = CONFIG.rushDuration;
+  gameState.scoreMultiplier = CONFIG.rushMultiplier;
+  rushText.style.display = "block";
+  playRushSound();
+}
+
+function updateNeonRush(dt){
+  if (!gameState.rushActive) return;
+  gameState.rushTimer -= dt;
+  if (gameState.rushTimer <= 0){
+    gameState.rushActive = false;
+    gameState.scoreMultiplier = 1;
+    rushText.style.display = "none";
+  }
+}
+
 /* ================================================================================
    SECTION 7B — AUDIO
-   All sound is generated procedurally with the Web Audio API (no external
-   audio files, keeping this a single self-contained HTML file). This covers:
-     - a continuous synth "engine hum" whose pitch/volume track current speed
-     - a short blip on every lane change
-     - a soft tick when an obstacle is safely passed
-     - a noise-burst "crash" sound on collision
-   Audio only ever starts after a user gesture (Start/Restart button), which
-   satisfies browser autoplay restrictions on both desktop and mobile.
+   Fully procedural (Web Audio API), optional, and non-blocking: every entry
+   point is wrapped so a failure here never stops the game from running.
    ================================================================================ */
 let audioContext = null;
+let audioAvailable = true;
 let soundEnabled = true;
 
 let engineOscillator = null;
 let engineFilter = null;
 let engineGain = null;
+let droneOscillator = null;
+let droneGain = null;
 
 function initAudio(){
-  if (audioContext) {
-    if (audioContext.state === "suspended") audioContext.resume();
+  if (!audioAvailable || audioContext) {
+    if (audioContext && audioContext.state === "suspended") audioContext.resume();
     return;
   }
+  try {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    engineOscillator = audioContext.createOscillator();
+    engineOscillator.type = "sawtooth";
+    engineOscillator.frequency.value = 60;
 
-  // persistent engine hum: a sawtooth run through a lowpass filter reads as a
-  // synthetic "hacker car" engine rather than a literal combustion sound
-  engineOscillator = audioContext.createOscillator();
-  engineOscillator.type = "sawtooth";
-  engineOscillator.frequency.value = 60;
+    engineFilter = audioContext.createBiquadFilter();
+    engineFilter.type = "lowpass";
+    engineFilter.frequency.value = 400;
 
-  engineFilter = audioContext.createBiquadFilter();
-  engineFilter.type = "lowpass";
-  engineFilter.frequency.value = 400;
+    engineGain = audioContext.createGain();
+    engineGain.gain.value = 0;
 
-  engineGain = audioContext.createGain();
-  engineGain.gain.value = 0; // silent until the run actually starts
+    engineOscillator.connect(engineFilter);
+    engineFilter.connect(engineGain);
+    engineGain.connect(audioContext.destination);
+    engineOscillator.start();
 
-  engineOscillator.connect(engineFilter);
-  engineFilter.connect(engineGain);
-  engineGain.connect(audioContext.destination);
-  engineOscillator.start();
+    droneOscillator = audioContext.createOscillator();
+    droneOscillator.type = "sine";
+    droneOscillator.frequency.value = 48;
+
+    droneGain = audioContext.createGain();
+    droneGain.gain.value = 0;
+
+    droneOscillator.connect(droneGain);
+    droneGain.connect(audioContext.destination);
+    droneOscillator.start();
+  } catch (error) {
+    console.warn("Audio unavailable, continuing without sound:", error);
+    audioAvailable = false;
+    audioContext = null;
+  }
 }
 
-// called every frame while the game is running to keep the hum "alive"
 function updateEngineHum(currentSpeed, isRunning){
-  if (!audioContext || !engineGain || !engineOscillator) return;
+  if (!audioAvailable || !audioContext || !engineGain || !engineOscillator) return;
+  try {
+    const targetGain = (isRunning && soundEnabled) ? 0.05 : 0;
+    const speedFraction = clamp((currentSpeed - CONFIG.baseSpeed) / (CONFIG.absoluteMaxSpeed - CONFIG.baseSpeed), 0, 1);
+    const targetFrequency = 55 + speedFraction * 140;
 
-  const targetGain = (isRunning && soundEnabled) ? 0.05 : 0;
-  const speedFraction = clamp((currentSpeed - CONFIG.baseSpeed) / (CONFIG.maxSpeed - CONFIG.baseSpeed), 0, 1);
-  const targetFrequency = 55 + speedFraction * 140;
+    const now = audioContext.currentTime;
+    engineGain.gain.setTargetAtTime(targetGain, now, 0.15);
+    engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.1);
+    engineFilter.frequency.setTargetAtTime(300 + speedFraction * 900, now, 0.1);
 
-  const now = audioContext.currentTime;
-  engineGain.gain.setTargetAtTime(targetGain, now, 0.15);
-  engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.1);
-  engineFilter.frequency.setTargetAtTime(300 + speedFraction * 900, now, 0.1);
+    if (droneGain && droneOscillator){
+      const droneTargetGain = (isRunning && soundEnabled) ? 0.02 : 0;
+      droneGain.gain.setTargetAtTime(droneTargetGain, now, 0.4);
+    }
+  } catch (error) {
+    audioAvailable = false;
+  }
 }
 
 function playLaneSwitchBlip(){
-  if (!audioContext || !soundEnabled) return;
-
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  oscillator.type = "square";
-  oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(360, audioContext.currentTime + 0.09);
-
-  gain.gain.setValueAtTime(0.06, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.12);
+  if (!audioAvailable || !audioContext || !soundEnabled) return;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(360, audioContext.currentTime + 0.09);
+    gain.gain.setValueAtTime(0.06, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.12);
+  } catch (error) { audioAvailable = false; }
 }
 
 function playPassBlip(){
-  if (!audioContext || !soundEnabled) return;
+  if (!audioAvailable || !audioContext || !soundEnabled) return;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1100, audioContext.currentTime);
+    gain.gain.setValueAtTime(0.035, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (error) { audioAvailable = false; }
+}
 
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(1100, audioContext.currentTime);
+function playLevelUpSound(){
+  if (!audioAvailable || !audioContext || !soundEnabled) return;
+  try {
+    const notes = [660, 880, 1320];
+    notes.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const startTime = audioContext.currentTime + index * 0.09;
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.07, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.22);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.24);
+    });
+  } catch (error) { audioAvailable = false; }
+}
 
-  gain.gain.setValueAtTime(0.035, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
-
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.1);
+function playRushSound(){
+  if (!audioAvailable || !audioContext || !soundEnabled) return;
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.05, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.42);
+  } catch (error) { audioAvailable = false; }
 }
 
 function playCrashSound(){
-  if (!audioContext || !soundEnabled) return;
+  if (!audioAvailable || !audioContext || !soundEnabled) return;
+  try {
+    const bufferSize = audioContext.sampleRate * 0.35;
+    const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+    const channelData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) channelData[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
 
-  // short burst of white noise for the "impact", plus a falling tone underneath
-  const bufferSize = audioContext.sampleRate * 0.35;
-  const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-  const channelData = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) channelData[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const noiseSource = audioContext.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
 
-  const noiseSource = audioContext.createBufferSource();
-  noiseSource.buffer = noiseBuffer;
+    const noiseGain = audioContext.createGain();
+    noiseGain.gain.setValueAtTime(0.25, audioContext.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
+    noiseSource.connect(noiseGain);
+    noiseGain.connect(audioContext.destination);
+    noiseSource.start();
 
-  const noiseGain = audioContext.createGain();
-  noiseGain.gain.setValueAtTime(0.25, audioContext.currentTime);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3);
-
-  noiseSource.connect(noiseGain);
-  noiseGain.connect(audioContext.destination);
-  noiseSource.start();
-
-  const thud = audioContext.createOscillator();
-  const thudGain = audioContext.createGain();
-  thud.type = "square";
-  thud.frequency.setValueAtTime(140, audioContext.currentTime);
-  thud.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
-  thudGain.gain.setValueAtTime(0.2, audioContext.currentTime);
-  thudGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35);
-  thud.connect(thudGain);
-  thudGain.connect(audioContext.destination);
-  thud.start();
-  thud.stop(audioContext.currentTime + 0.35);
+    const thud = audioContext.createOscillator();
+    const thudGain = audioContext.createGain();
+    thud.type = "square";
+    thud.frequency.setValueAtTime(140, audioContext.currentTime);
+    thud.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.3);
+    thudGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35);
+    thud.connect(thudGain);
+    thudGain.connect(audioContext.destination);
+    thud.start();
+    thud.stop(audioContext.currentTime + 0.35);
+  } catch (error) { audioAvailable = false; }
 }
 
 /* ================================================================================
-   SECTION 8 — INPUT HANDLING (keyboard + touch swipe)
+   SECTION 8 — INPUT HANDLING (keyboard + touch: tap-half-screen + swipe)
    ================================================================================ */
-
-// shared lane-change logic used by both keyboard and swipe input
 function changeLane(direction){
-  if (!gameState.isRunning) return;
+  if (gameState.mode !== "playing") return;
 
   const nextLane = clamp(gameState.currentLane + direction, 0, CONFIG.laneCount - 1);
-  if (nextLane === gameState.currentLane) return; // already at the edge lane, nothing to do
+  if (nextLane === gameState.currentLane) return;
 
   gameState.currentLane = nextLane;
   gameState.targetCarX = laneCenterX(gameState.currentLane);
@@ -961,15 +1117,16 @@ function handleLaneKeydown(event){
 }
 window.addEventListener("keydown", handleLaneKeydown);
 
-// --- touch swipe support (mobile) ---
-// tracked on the canvas itself so on-screen buttons (start/restart) are unaffected
-const swipeState = { startX: 0, startY: 0, active: false };
-const SWIPE_MIN_DISTANCE = 40; // px — how far a touch must travel horizontally to count as a swipe
+const swipeState = { startX: 0, startY: 0, startTime: 0, active: false };
+const SWIPE_MIN_DISTANCE = 40;
+const TAP_MAX_MOVEMENT = 18;
+const TAP_MAX_DURATION = 300;
 
 renderer.domElement.addEventListener("touchstart", (event) => {
   const touch = event.changedTouches[0];
   swipeState.startX = touch.clientX;
   swipeState.startY = touch.clientY;
+  swipeState.startTime = performance.now();
   swipeState.active = true;
 }, { passive: true });
 
@@ -980,37 +1137,69 @@ renderer.domElement.addEventListener("touchend", (event) => {
   const touch = event.changedTouches[0];
   const deltaX = touch.clientX - swipeState.startX;
   const deltaY = touch.clientY - swipeState.startY;
+  const deltaTime = performance.now() - swipeState.startTime;
 
-  // require a mostly-horizontal gesture so vertical scrolling/tapping isn't misread
   if (Math.abs(deltaX) > SWIPE_MIN_DISTANCE && Math.abs(deltaX) > Math.abs(deltaY)){
     changeLane(deltaX > 0 ? 1 : -1);
+    return;
+  }
+
+  if (deltaTime < TAP_MAX_DURATION && Math.abs(deltaX) < TAP_MAX_MOVEMENT && Math.abs(deltaY) < TAP_MAX_MOVEMENT){
+    const isLeftHalf = touch.clientX < window.innerWidth / 2;
+    changeLane(isLeftHalf ? -1 : 1);
   }
 }, { passive: true });
 
 /* ================================================================================
-   SECTION 9 — GAME STATE
+   SECTION 9 — GAME STATE (state machine: menu / playing / levelTransition / gameOver)
    ================================================================================ */
+function loadBestScore(){
+  try {
+    const stored = localStorage.getItem("neonRunnerBestScore");
+    return stored ? Number(stored) : 0;
+  } catch (error) { return 0; }
+}
+function saveBestScore(value){
+  try { localStorage.setItem("neonRunnerBestScore", String(value)); }
+  catch (error) { /* storage unavailable — best score won't persist this session */ }
+}
+
 const gameState = {
-  isRunning: false,
+  mode: "menu", // menu | playing | levelTransition | gameOver
   currentLane: Math.floor(CONFIG.laneCount / 2),
   targetCarX: 0,
   currentSpeed: CONFIG.baseSpeed,
   spawnTimer: 0,
   spawnInterval: CONFIG.spawnIntervalStart,
   score: 0,
-  bestScore: 0,
-  elapsedTime: 0
+  bestScore: loadBestScore(),
+  streak: 0,
+  scoreMultiplier: 1,
+  rushActive: false,
+  rushTimer: 0,
+  elapsedTime: 0,
+
+  level: 1,
+  levelScoreStart: 0,
+  currentLevelConfig: null,
+  transitionTimer: 0
 };
 gameState.targetCarX = laneCenterX(gameState.currentLane);
+gameState.currentLevelConfig = getLevelConfig(gameState.level);
+applyLevelTheme(gameState.currentLevelConfig);
 
 function recalculateDifficulty(){
+  const levelConfig = gameState.currentLevelConfig;
+  const rawSpeed = CONFIG.baseSpeed + gameState.score * CONFIG.speedGainPerPoint;
   gameState.currentSpeed = clamp(
-    CONFIG.baseSpeed + gameState.score * CONFIG.speedGainPerPoint,
+    rawSpeed * levelConfig.speedMultiplier,
     CONFIG.baseSpeed,
-    CONFIG.maxSpeed
+    CONFIG.absoluteMaxSpeed
   );
+
+  const rawInterval = CONFIG.spawnIntervalStart - gameState.score * CONFIG.spawnIntervalDecayPerPoint;
   gameState.spawnInterval = clamp(
-    CONFIG.spawnIntervalStart - gameState.score * CONFIG.spawnIntervalDecayPerPoint,
+    rawInterval * levelConfig.spawnIntervalMultiplier,
     CONFIG.spawnIntervalMin,
     CONFIG.spawnIntervalStart
   );
@@ -1022,10 +1211,7 @@ function recalculateDifficulty(){
 function isCollidingWithCar(obstacle){
   const withinZWindow = Math.abs(obstacle.position.z - CONFIG.carZ) < CONFIG.collisionZWindow;
   if (!withinZWindow) return false;
-
-  const laneOverlap = Math.abs(obstacle.position.x - car.position.x)
-    < (CONFIG.laneWidth * CONFIG.collisionLaneFraction) / 2;
-  return laneOverlap;
+  return Math.abs(obstacle.position.x - car.position.x) < (CONFIG.laneWidth * CONFIG.collisionLaneFraction) / 2;
 }
 
 /* ================================================================================
@@ -1035,13 +1221,23 @@ const startOverlay = document.getElementById("startOverlay");
 const startButton = document.getElementById("startButton");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const restartButton = document.getElementById("restartButton");
+const levelTransitionOverlay = document.getElementById("levelTransitionOverlay");
+const levelCompleteTitle = document.getElementById("levelCompleteTitle");
+const levelBonusLine = document.getElementById("levelBonusLine");
+const levelNextLine = document.getElementById("levelNextLine");
 
+const levelLabel = document.getElementById("levelLabel");
 const scoreText = document.getElementById("scoreText");
 const bestText = document.getElementById("bestText");
+const streakText = document.getElementById("streakText");
+const rushText = document.getElementById("rushText");
 const statusLine = document.getElementById("statusLine");
 const speedBarFill = document.getElementById("speedBarFill");
+const progressBarFill = document.getElementById("progressBarFill");
 const finalScoreText = document.getElementById("finalScoreText");
+const finalLevelText = document.getElementById("finalLevelText");
 const finalBestText = document.getElementById("finalBestText");
+const newBestLine = document.getElementById("newBestLine");
 const muteButton = document.getElementById("muteButton");
 
 muteButton.addEventListener("click", () => {
@@ -1050,78 +1246,154 @@ muteButton.addEventListener("click", () => {
 });
 
 function refreshHud(){
+  levelLabel.textContent = `NEON RUNNER // LEVEL ${gameState.level} — ${gameState.currentLevelConfig.theme.name}`;
   scoreText.textContent = `SCORE: ${Math.floor(gameState.score)}`;
   bestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
+  streakText.textContent = `STREAK: ${gameState.streak}`;
   statusLine.textContent = `LANE ${gameState.currentLane + 1} / ${CONFIG.laneCount} — HOLD THE LINE`;
 
   const speedFraction = clamp(
-    (gameState.currentSpeed - CONFIG.baseSpeed) / (CONFIG.maxSpeed - CONFIG.baseSpeed),
-    0, 1
+    (gameState.currentSpeed - CONFIG.baseSpeed) / (CONFIG.absoluteMaxSpeed - CONFIG.baseSpeed), 0, 1
   );
   speedBarFill.style.width = `${(speedFraction * 100).toFixed(1)}%`;
+
+  const levelProgress = clamp(
+    (gameState.score - gameState.levelScoreStart) / gameState.currentLevelConfig.targetScore, 0, 1
+  );
+  progressBarFill.style.width = `${(levelProgress * 100).toFixed(1)}%`;
 }
 
 /* ================================================================================
-   SECTION 12 — GAME FLOW (start / game over / restart)
+   SECTION 12 — GAME FLOW (state machine transitions)
    ================================================================================ */
 function startGame(){
-  initAudio(); // must happen inside a user-gesture handler (this click) to satisfy autoplay policy
+  initAudio(); // must happen inside a user-gesture handler to satisfy autoplay policy
 
   startOverlay.style.display = "none";
   gameOverOverlay.style.display = "none";
+  levelTransitionOverlay.style.display = "none";
+  newBestLine.style.display = "none";
+  rushText.style.display = "none";
 
   clearAllObstacles();
-  gameState.isRunning = true;
+
+  gameState.mode = "playing";
   gameState.currentLane = Math.floor(CONFIG.laneCount / 2);
   gameState.targetCarX = laneCenterX(gameState.currentLane);
   car.position.x = gameState.targetCarX;
+  car.rotation.z = 0;
+
   gameState.currentSpeed = CONFIG.baseSpeed;
   gameState.spawnTimer = 0;
   gameState.spawnInterval = CONFIG.spawnIntervalStart;
   gameState.score = 0;
+  gameState.streak = 0;
+  gameState.scoreMultiplier = 1;
+  gameState.rushActive = false;
+  gameState.rushTimer = 0;
   gameState.elapsedTime = 0;
 
+  gameState.level = 1;
+  gameState.levelScoreStart = 0;
+  gameState.currentLevelConfig = getLevelConfig(gameState.level);
+  applyLevelTheme(gameState.currentLevelConfig);
+
   refreshHud();
-  clock.getDelta(); // avoid a large dt spike on the very first frame after idling on the overlay
+  clock.getDelta(); // avoid a large dt spike on the first frame after idling on an overlay
+}
+
+// called from the main loop once level progress reaches its target
+function triggerLevelComplete(){
+  gameState.mode = "levelTransition";
+  gameState.transitionTimer = CONFIG.levelTransitionDuration;
+  clearAllObstacles();
+  playLevelUpSound();
+
+  const bonus = gameState.streak * CONFIG.levelBonusPerStreak;
+  gameState.score += bonus;
+
+  const nextLevelConfig = getLevelConfig(gameState.level + 1);
+  levelCompleteTitle.textContent = `LEVEL ${gameState.level} COMPLETE`;
+  levelBonusLine.textContent = `STREAK BONUS +${bonus}`;
+  levelNextLine.textContent = `ENTERING LEVEL ${gameState.level + 1}: ${nextLevelConfig.theme.name}`;
+  levelTransitionOverlay.style.display = "flex";
+
+  refreshHud();
+}
+
+// called from the main loop once the transition timer elapses
+function finishLevelTransition(){
+  gameState.level += 1;
+  gameState.levelScoreStart = gameState.score;
+  gameState.currentLevelConfig = getLevelConfig(gameState.level);
+  applyLevelTheme(gameState.currentLevelConfig);
+
+  gameState.spawnTimer = 0;
+  levelTransitionOverlay.style.display = "none";
+  gameState.mode = "playing";
+  refreshHud();
 }
 
 function triggerGameOver(){
-  gameState.isRunning = false;
-  gameState.bestScore = Math.max(gameState.bestScore, gameState.score);
+  gameState.mode = "gameOver";
   playCrashSound();
 
+  const isNewBest = gameState.score > gameState.bestScore;
+  if (isNewBest){
+    gameState.bestScore = gameState.score;
+    saveBestScore(gameState.bestScore);
+  }
+
   finalScoreText.textContent = `FINAL SCORE: ${Math.floor(gameState.score)}`;
+  finalLevelText.textContent = `REACHED LEVEL ${gameState.level}`;
   finalBestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
+  newBestLine.style.display = isNewBest ? "block" : "none";
+  rushText.style.display = "none";
   gameOverOverlay.style.display = "flex";
 }
 
 startButton.addEventListener("click", startGame);
 restartButton.addEventListener("click", startGame);
+refreshHud(); // show the persisted best score / level 1 theme even before the first run
 
 /* ================================================================================
    SECTION 13 — PER-FRAME CAR ANIMATION (lean, bob, wheel spin)
    ================================================================================ */
 function updateCarAnimation(dt){
-  // smooth, eased lane switching — never a linear snap
   car.position.x = damp(car.position.x, gameState.targetCarX, CONFIG.laneSwitchSharpness, dt);
 
-  // slight body lean into the direction of the lane change
   const lateralDelta = gameState.targetCarX - car.position.x;
   car.rotation.z = damp(car.rotation.z, lateralDelta * CONFIG.bodyLeanAmount, 8, dt);
 
-  // subtle idle vertical vibration that intensifies with speed — sells the
-  // feeling of a powerful engine at idle/full throttle without any physics engine
   const bobFrequency = CONFIG.idleBobFrequencyBase + gameState.currentSpeed * CONFIG.idleBobFrequencyPerSpeed;
   car.position.y = Math.sin(gameState.elapsedTime * bobFrequency) * CONFIG.idleBobAmplitude;
 
-  // wheels + discs + rims all spin together, rate tied to current speed
   spinningWheelMeshes.forEach(wheelPart => {
     wheelPart.rotation.x -= dt * (2 + gameState.currentSpeed * CONFIG.wheelSpinPerSpeed);
   });
 }
 
 /* ================================================================================
-   SECTION 14 — MAIN LOOP
+   SECTION 13B — PER-FRAME ENVIRONMENT MOTION
+   ================================================================================ */
+function updateEnvironmentMotion(dt, currentSpeed){
+  roadGridTexture.offset.y += dt * currentSpeed * CONFIG.gridScrollSpeedFactor;
+
+  const pylonAdvance = dt * currentSpeed * CONFIG.pylonSpeedFactor;
+  roadsidePylons.forEach(pylon => {
+    pylon.position.z += pylonAdvance;
+    if (pylon.position.z > camera.position.z + 4) pylon.position.z -= CONFIG.pylonSpanLength;
+  });
+
+  const skylineAdvance = dt * currentSpeed * CONFIG.skylineSpeedFactor;
+  skylineBuildings.forEach(building => {
+    building.position.z += skylineAdvance;
+    if (building.position.z > camera.position.z + 20) building.position.z -= CONFIG.skylineSpanLength;
+  });
+}
+
+/* ================================================================================
+   SECTION 14 — MAIN LOOP (state machine driver)
    ================================================================================ */
 const clock = new THREE.Clock();
 
@@ -1129,13 +1401,14 @@ function animate(){
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  if (gameState.isRunning){
+  if (gameState.mode === "playing"){
     gameState.elapsedTime += dt;
 
     recalculateDifficulty();
     updateCarAnimation(dt);
+    updateEnvironmentMotion(dt, gameState.currentSpeed);
+    updateNeonRush(dt);
 
-    // spawn obstacles on a timer that speeds up as difficulty rises
     gameState.spawnTimer += dt;
     if (gameState.spawnTimer >= gameState.spawnInterval){
       gameState.spawnTimer = 0;
@@ -1144,7 +1417,6 @@ function animate(){
 
     updateObstacles(dt, gameState.currentSpeed);
 
-    // check collisions after movement so obstacle positions are current
     for (const obstacle of activeObstacles){
       if (isCollidingWithCar(obstacle)){
         triggerGameOver();
@@ -1152,10 +1424,27 @@ function animate(){
       }
     }
 
+    if (gameState.mode === "playing" &&
+        (gameState.score - gameState.levelScoreStart) >= gameState.currentLevelConfig.targetScore){
+      triggerLevelComplete();
+    }
+
     refreshHud();
+
+  } else if (gameState.mode === "levelTransition"){
+    gameState.transitionTimer -= dt;
+    updateEnvironmentMotion(dt, gameState.currentSpeed * 0.4);
+    updateCarAnimation(dt);
+    if (gameState.transitionTimer <= 0){
+      finishLevelTransition();
+    }
+
+  } else {
+    // menu or gameOver — keep a faint ambient drift so the world never feels frozen
+    updateEnvironmentMotion(dt, CONFIG.baseSpeed * 0.15);
   }
 
-  updateEngineHum(gameState.currentSpeed, gameState.isRunning);
+  updateEngineHum(gameState.currentSpeed, gameState.mode === "playing");
   renderer.render(scene, camera);
 }
 animate();
