@@ -42,6 +42,15 @@
     text-shadow: none;
   }
 
+  #hud .topLeft .tierLine {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(255, 210, 77, 0.75);
+    text-shadow: 0 0 6px rgba(255, 210, 77, 0.4);
+  }
+
   #hud .topRight {
     position: absolute;
     top: 18px;
@@ -257,6 +266,7 @@
     <div class="topLeft">
       <span id="levelLabel">NEON RUNNER // LEVEL 1</span>
       <span class="subLine" id="statusLine">LANE 2 / 3 — HOLD THE LINE</span>
+      <span class="tierLine" id="tierLine">CHASSIS: STREET</span>
     </div>
 
     <div class="topRight">
@@ -280,7 +290,7 @@
 
   <div id="startOverlay" class="overlay">
     <h1>NEON RUNNER</h1>
-    <p>ARROW KEYS OR A / D TO CHANGE LANES · TAP / SWIPE ON MOBILE<br>CLEAR EACH LEVEL'S TARGET SCORE TO ADVANCE THE GRID</p>
+    <p>ARROW KEYS OR A / D TO CHANGE LANES · TAP / SWIPE ON MOBILE<br>CLEAR EACH LEVEL TO ADVANCE THE GRID AND UPGRADE YOUR RIDE</p>
     <button id="startButton" class="overlayButton">TAP / CLICK TO START</button>
   </div>
 
@@ -352,6 +362,7 @@ const CONFIG = {
   // --- level progression ---
   levelBaseTarget: 150,
   levelTargetGrowth: 130,
+  levelMinDuration: 10,       // every level lasts at least this many seconds, regardless of score pace
   levelSpeedGrowthPerLevel: 0.12,
   levelSpawnIntervalDecayPerLevel: 0.05,
   levelSpawnIntervalFloor: 0.55,
@@ -386,6 +397,59 @@ const THEMES = [
   { name: "VOID PURPLE",   primary: 0x8f2bff, secondary: 0x00f7ff, accent: 0xff2bd6, fog: 0x03000a }
 ];
 
+// the car itself gets visibly more expensive as levels climb: richer paint,
+// glossier clearcoat (lower roughness / higher metalness), warmer gold/chrome
+// trim replacing carbon, brighter accent glow, and extra premium detail parts
+// that only appear once a tier unlocks them. Tiers cap out at HYPERCAR so the
+// car stops escalating once fully "maxed" rather than cycling back down.
+const CAR_TIERS = [
+  {
+    name: "STREET",
+    bodyColor: 0x101015, bodyMetalness: 0.85, bodyRoughness: 0.28, bodyEmissive: 0x00151a, bodyEmissiveIntensity: 0.5,
+    trimColor: 0x0c0c10, trimMetalness: 0.35, trimRoughness: 0.75,
+    bezelColor: 0xb9c2c8, bezelMetalness: 1.0, bezelRoughness: 0.3,
+    accentColor: 0x00f7ff, accentIntensity: 1.2,
+    underglowColor: 0x00f7ff, underglowOpacity: 0.3,
+    showPinstripe: false, showExtraSpoiler: false, showExhaustTips: false
+  },
+  {
+    name: "SPORT",
+    bodyColor: 0x14141c, bodyMetalness: 0.9, bodyRoughness: 0.18, bodyEmissive: 0x001a20, bodyEmissiveIntensity: 0.6,
+    trimColor: 0x101014, trimMetalness: 0.5, trimRoughness: 0.55,
+    bezelColor: 0xc7d0d6, bezelMetalness: 1.0, bezelRoughness: 0.22,
+    accentColor: 0x00f7ff, accentIntensity: 1.5,
+    underglowColor: 0x00f7ff, underglowOpacity: 0.4,
+    showPinstripe: false, showExtraSpoiler: false, showExhaustTips: true
+  },
+  {
+    name: "PERFORMANCE",
+    bodyColor: 0x1c1420, bodyMetalness: 0.92, bodyRoughness: 0.12, bodyEmissive: 0x220018, bodyEmissiveIntensity: 0.65,
+    trimColor: 0x2a1508, trimMetalness: 0.7, trimRoughness: 0.35,
+    bezelColor: 0xd8c48a, bezelMetalness: 1.0, bezelRoughness: 0.18,
+    accentColor: 0xffb000, accentIntensity: 1.7,
+    underglowColor: 0xffb000, underglowOpacity: 0.45,
+    showPinstripe: true, showExtraSpoiler: false, showExhaustTips: true
+  },
+  {
+    name: "LUXURY",
+    bodyColor: 0x0c0c10, bodyMetalness: 0.96, bodyRoughness: 0.08, bodyEmissive: 0x1a1400, bodyEmissiveIntensity: 0.7,
+    trimColor: 0x3a2a08, trimMetalness: 0.85, trimRoughness: 0.2,
+    bezelColor: 0xf0d98c, bezelMetalness: 1.0, bezelRoughness: 0.1,
+    accentColor: 0xffd24d, accentIntensity: 2.0,
+    underglowColor: 0xffd24d, underglowOpacity: 0.5,
+    showPinstripe: true, showExtraSpoiler: true, showExhaustTips: true
+  },
+  {
+    name: "HYPERCAR",
+    bodyColor: 0x050505, bodyMetalness: 1.0, bodyRoughness: 0.04, bodyEmissive: 0x2a0010, bodyEmissiveIntensity: 0.85,
+    trimColor: 0x402000, trimMetalness: 0.95, trimRoughness: 0.08,
+    bezelColor: 0xffe9a8, bezelMetalness: 1.0, bezelRoughness: 0.05,
+    accentColor: 0xffffff, accentIntensity: 2.4,
+    underglowColor: 0xffffff, underglowOpacity: 0.6,
+    showPinstripe: true, showExtraSpoiler: true, showExhaustTips: true
+  }
+];
+
 // deterministic level configuration generator — every level changes at least
 // speed, spawn interval, obstacle mix (barrier chance), and visual theme.
 function getLevelConfig(levelNumber){
@@ -405,6 +469,13 @@ function getLevelConfig(levelNumber){
       CONFIG.levelBarrierChanceBase + step * CONFIG.levelBarrierChanceGrowth
     )
   };
+}
+
+// car tier caps at the last defined tier (HYPERCAR) rather than cycling —
+// once fully upgraded, the car stays at its most expensive look.
+function getCarTier(levelNumber){
+  const tierIndex = Math.min(levelNumber - 1, CAR_TIERS.length - 1);
+  return CAR_TIERS[tierIndex];
 }
 
 /* ================================================================================
@@ -450,6 +521,9 @@ setupLighting();
 
 /* ================================================================================
    SECTION 4 — SHARED MATERIALS & HELPERS
+   These materials are mutated in place by applyCarTier() as the car upgrades,
+   so every mesh referencing them (chassis, hood, cabin, rims, calipers, etc.)
+   updates together without rebuilding any geometry.
    ================================================================================ */
 const materials = {
   bodyPaint: new THREE.MeshStandardMaterial({
@@ -497,8 +571,9 @@ function laneCenterX(laneIndex){
 
 /* ================================================================================
    SECTION 5 — CAR CONSTRUCTION
-   (Body/aero/glass/spoiler/lights/wheels — identity kept fixed across levels;
-   only the environment around the car is retheme-able.)
+   Split into small, named functions. Premium accent parts (pinstripe, extra
+   spoiler element, exhaust tips) are always built once, then shown/hidden per
+   car tier by applyCarTier() — cheap to toggle, no geometry rebuilt at runtime.
    ================================================================================ */
 function createCarBody(){
   const bodyGroup = new THREE.Group();
@@ -668,14 +743,49 @@ function createWheels(){
   return { wheelsGroup, spinningWheelMeshes };
 }
 
+// underglow material is kept as a module-level reference so applyCarTier can
+// recolor/re-intensify it as the car's tier upgrades.
+let underglowMaterial;
 function createUnderglow(){
-  const underGlow = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.5, 3.2),
-    new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan, transparent: true, opacity: 0.35 })
-  );
+  underglowMaterial = new THREE.MeshBasicMaterial({
+    color: CONFIG.colors.cyan, transparent: true, opacity: 0.35
+  });
+  const underGlow = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 3.2), underglowMaterial);
   underGlow.rotation.x = -Math.PI / 2;
   underGlow.position.y = 0.06;
   return underGlow;
+}
+
+// premium accent parts: built once, toggled visible per car tier. They reuse
+// materials.headlightGlow/brushedSilver so their color/finish upgrades
+// automatically alongside the rest of the car whenever applyCarTier runs.
+function createPremiumAccents(){
+  const accentGroup = new THREE.Group();
+  const pinstripeMeshes = [];
+  const exhaustTipMeshes = [];
+
+  const pinstripeGeometry = new THREE.BoxGeometry(0.03, 0.03, 3.2);
+  [0.86, -0.86].forEach(xSide => {
+    const stripe = new THREE.Mesh(pinstripeGeometry, materials.headlightGlow);
+    stripe.position.set(xSide, 0.5, -0.1);
+    accentGroup.add(stripe);
+    pinstripeMeshes.push(stripe);
+  });
+
+  const extraWing = withEdges(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.04, 0.18), materials.darkTrim));
+  extraWing.position.set(0, 1.08, -1.85);
+  accentGroup.add(extraWing);
+
+  const exhaustGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.22, 12);
+  [0.35, -0.35].forEach(xSide => {
+    const tip = new THREE.Mesh(exhaustGeometry, materials.brushedSilver);
+    tip.rotation.x = Math.PI / 2;
+    tip.position.set(xSide, 0.28, -2.05);
+    accentGroup.add(tip);
+    exhaustTipMeshes.push(tip);
+  });
+
+  return { accentGroup, pinstripeMeshes, extraWing, exhaustTipMeshes };
 }
 
 function assembleCar(){
@@ -690,11 +800,45 @@ function assembleCar(){
   carGroup.add(wheelsGroup);
   carGroup.add(createUnderglow());
 
-  return { carGroup, spinningWheelMeshes };
+  const carAccents = createPremiumAccents();
+  carGroup.add(carAccents.accentGroup);
+
+  return { carGroup, spinningWheelMeshes, carAccents };
 }
 
-const { carGroup: car, spinningWheelMeshes } = assembleCar();
+const { carGroup: car, spinningWheelMeshes, carAccents } = assembleCar();
 scene.add(car);
+
+// applies a car tier's look: paint, trim, bezel finish, accent glow color and
+// intensity, underglow, and whether the premium-only detail parts are shown.
+function applyCarTier(tier){
+  materials.bodyPaint.color.setHex(tier.bodyColor);
+  materials.bodyPaint.metalness = tier.bodyMetalness;
+  materials.bodyPaint.roughness = tier.bodyRoughness;
+  materials.bodyPaint.emissive.setHex(tier.bodyEmissive);
+  materials.bodyPaint.emissiveIntensity = tier.bodyEmissiveIntensity;
+
+  materials.carbonTrim.color.setHex(tier.trimColor);
+  materials.carbonTrim.metalness = tier.trimMetalness;
+  materials.carbonTrim.roughness = tier.trimRoughness;
+
+  materials.brushedSilver.color.setHex(tier.bezelColor);
+  materials.brushedSilver.metalness = tier.bezelMetalness;
+  materials.brushedSilver.roughness = tier.bezelRoughness;
+
+  materials.headlightGlow.emissive.setHex(tier.accentColor);
+  materials.headlightGlow.emissiveIntensity = tier.accentIntensity;
+
+  materials.caliperGlow.emissive.setHex(tier.accentColor);
+  materials.caliperGlow.emissiveIntensity = tier.accentIntensity * 0.75;
+
+  underglowMaterial.color.setHex(tier.underglowColor);
+  underglowMaterial.opacity = tier.underglowOpacity;
+
+  carAccents.pinstripeMeshes.forEach(mesh => { mesh.visible = tier.showPinstripe; });
+  carAccents.extraWing.visible = tier.showExtraSpoiler;
+  carAccents.exhaustTipMeshes.forEach(mesh => { mesh.visible = tier.showExhaustTips; });
+}
 
 /* ================================================================================
    SECTION 6 — ROAD & ENVIRONMENT
@@ -813,7 +957,8 @@ function createSkyline(){
 createSkyline();
 
 // applies a level's visual theme to the environment only — the car's own
-// materials are left untouched so its identity stays consistent across levels.
+// materials are handled separately by applyCarTier() so its upgrade path
+// reads clearly against the shifting backdrop.
 function applyLevelTheme(levelConfig){
   const theme = levelConfig.theme;
 
@@ -1181,12 +1326,14 @@ const gameState = {
 
   level: 1,
   levelScoreStart: 0,
+  levelElapsedTime: 0,     // resets each level — gates the minimum level duration
   currentLevelConfig: null,
   transitionTimer: 0
 };
 gameState.targetCarX = laneCenterX(gameState.currentLane);
 gameState.currentLevelConfig = getLevelConfig(gameState.level);
 applyLevelTheme(gameState.currentLevelConfig);
+applyCarTier(getCarTier(gameState.level));
 
 function recalculateDifficulty(){
   const levelConfig = gameState.currentLevelConfig;
@@ -1203,6 +1350,15 @@ function recalculateDifficulty(){
     CONFIG.spawnIntervalMin,
     CONFIG.spawnIntervalStart
   );
+}
+
+// a level is only complete once BOTH its score target is met AND it has run
+// for at least CONFIG.levelMinDuration seconds — fast scoring alone can't
+// skip a level in a couple of seconds.
+function isLevelComplete(){
+  const scoreReached = (gameState.score - gameState.levelScoreStart) >= gameState.currentLevelConfig.targetScore;
+  const timeReached = gameState.levelElapsedTime >= CONFIG.levelMinDuration;
+  return scoreReached && timeReached;
 }
 
 /* ================================================================================
@@ -1227,6 +1383,7 @@ const levelBonusLine = document.getElementById("levelBonusLine");
 const levelNextLine = document.getElementById("levelNextLine");
 
 const levelLabel = document.getElementById("levelLabel");
+const tierLine = document.getElementById("tierLine");
 const scoreText = document.getElementById("scoreText");
 const bestText = document.getElementById("bestText");
 const streakText = document.getElementById("streakText");
@@ -1247,6 +1404,7 @@ muteButton.addEventListener("click", () => {
 
 function refreshHud(){
   levelLabel.textContent = `NEON RUNNER // LEVEL ${gameState.level} — ${gameState.currentLevelConfig.theme.name}`;
+  tierLine.textContent = `CHASSIS: ${getCarTier(gameState.level).name}`;
   scoreText.textContent = `SCORE: ${Math.floor(gameState.score)}`;
   bestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
   streakText.textContent = `STREAK: ${gameState.streak}`;
@@ -1257,9 +1415,12 @@ function refreshHud(){
   );
   speedBarFill.style.width = `${(speedFraction * 100).toFixed(1)}%`;
 
-  const levelProgress = clamp(
+  const scoreProgress = clamp(
     (gameState.score - gameState.levelScoreStart) / gameState.currentLevelConfig.targetScore, 0, 1
   );
+  const timeProgress = clamp(gameState.levelElapsedTime / CONFIG.levelMinDuration, 0, 1);
+  // level progress bar reflects whichever gate is currently the bottleneck
+  const levelProgress = Math.min(scoreProgress, timeProgress);
   progressBarFill.style.width = `${(levelProgress * 100).toFixed(1)}%`;
 }
 
@@ -1295,14 +1456,16 @@ function startGame(){
 
   gameState.level = 1;
   gameState.levelScoreStart = 0;
+  gameState.levelElapsedTime = 0;
   gameState.currentLevelConfig = getLevelConfig(gameState.level);
   applyLevelTheme(gameState.currentLevelConfig);
+  applyCarTier(getCarTier(gameState.level));
 
   refreshHud();
   clock.getDelta(); // avoid a large dt spike on the first frame after idling on an overlay
 }
 
-// called from the main loop once level progress reaches its target
+// called from the main loop once level progress (score AND minimum time) is met
 function triggerLevelComplete(){
   gameState.mode = "levelTransition";
   gameState.transitionTimer = CONFIG.levelTransitionDuration;
@@ -1313,9 +1476,10 @@ function triggerLevelComplete(){
   gameState.score += bonus;
 
   const nextLevelConfig = getLevelConfig(gameState.level + 1);
+  const nextCarTier = getCarTier(gameState.level + 1);
   levelCompleteTitle.textContent = `LEVEL ${gameState.level} COMPLETE`;
   levelBonusLine.textContent = `STREAK BONUS +${bonus}`;
-  levelNextLine.textContent = `ENTERING LEVEL ${gameState.level + 1}: ${nextLevelConfig.theme.name}`;
+  levelNextLine.textContent = `ENTERING LEVEL ${gameState.level + 1}: ${nextLevelConfig.theme.name} · ${nextCarTier.name} CHASSIS`;
   levelTransitionOverlay.style.display = "flex";
 
   refreshHud();
@@ -1325,8 +1489,10 @@ function triggerLevelComplete(){
 function finishLevelTransition(){
   gameState.level += 1;
   gameState.levelScoreStart = gameState.score;
+  gameState.levelElapsedTime = 0;
   gameState.currentLevelConfig = getLevelConfig(gameState.level);
   applyLevelTheme(gameState.currentLevelConfig);
+  applyCarTier(getCarTier(gameState.level));
 
   gameState.spawnTimer = 0;
   levelTransitionOverlay.style.display = "none";
@@ -1345,7 +1511,7 @@ function triggerGameOver(){
   }
 
   finalScoreText.textContent = `FINAL SCORE: ${Math.floor(gameState.score)}`;
-  finalLevelText.textContent = `REACHED LEVEL ${gameState.level}`;
+  finalLevelText.textContent = `REACHED LEVEL ${gameState.level} — ${getCarTier(gameState.level).name} CHASSIS`;
   finalBestText.textContent = `BEST: ${Math.floor(gameState.bestScore)}`;
   newBestLine.style.display = isNewBest ? "block" : "none";
   rushText.style.display = "none";
@@ -1403,6 +1569,7 @@ function animate(){
 
   if (gameState.mode === "playing"){
     gameState.elapsedTime += dt;
+    gameState.levelElapsedTime += dt;
 
     recalculateDifficulty();
     updateCarAnimation(dt);
@@ -1424,8 +1591,7 @@ function animate(){
       }
     }
 
-    if (gameState.mode === "playing" &&
-        (gameState.score - gameState.levelScoreStart) >= gameState.currentLevelConfig.targetScore){
+    if (gameState.mode === "playing" && isLevelComplete()){
       triggerLevelComplete();
     }
 
